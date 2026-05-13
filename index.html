@@ -1,0 +1,1339 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ginoteca — Command Center v3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root{
+  --ink:#1a1410;--ink-60:rgba(26,20,16,.6);--ink-20:rgba(26,20,16,.1);
+  --cream:#f7f2e8;--parchment:#ede6d6;--parch2:#e3dac8;--white:#fdfaf4;
+  --terra:#b84a20;--terra-l:#f5e0d4;--terra-m:#e8c0a8;
+  --olive:#3d5a3e;--olive-l:#d8e8d8;--olive-m:#b0ceb0;
+  --amber:#b8780a;--amber-l:#faecd4;--amber-m:#eac888;
+  --slate:#3a4a5c;--slate-l:#d8e0ec;
+  --danger:#9e2020;--danger-l:#f5d8d8;
+  --border:rgba(26,20,16,.11);--border-med:rgba(26,20,16,.18);
+  --fd:'Bebas Neue',sans-serif;--fs:'DM Serif Display',serif;
+  --fb:'Instrument Sans',sans-serif;--fm:'DM Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{background:var(--parchment);color:var(--ink);font-family:var(--fb);font-size:14px;line-height:1.5;min-height:100vh;}
+
+/* SHELL */
+.shell{display:grid;grid-template-columns:220px 1fr;grid-template-rows:58px 1fr;min-height:100vh;}
+
+/* TOPBAR */
+.topbar{grid-column:1/-1;background:var(--white);border-bottom:1px solid var(--border-med);padding:0 28px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 1px 3px var(--ink-20);}
+.tb-brand{display:flex;align-items:baseline;gap:12px;}
+.tb-logo{font-family:var(--fd);font-size:26px;letter-spacing:.06em;color:var(--terra);line-height:1;}
+.tb-tag{font-family:var(--fm);font-size:10px;color:var(--ink-60);letter-spacing:.1em;text-transform:uppercase;}
+.tb-right{display:flex;align-items:center;gap:14px;}
+.tb-date{font-family:var(--fm);font-size:11px;color:var(--ink-60);}
+.tb-phase{font-family:var(--fm);font-size:10px;padding:4px 11px;border-radius:4px;background:var(--terra-l);color:var(--terra);border:1px solid var(--terra-m);letter-spacing:.08em;text-transform:uppercase;}
+
+/* SIDEBAR */
+.sidebar{background:var(--white);border-right:1px solid var(--border-med);padding:20px 0;display:flex;flex-direction:column;position:sticky;top:58px;height:calc(100vh - 58px);overflow-y:auto;}
+.sb-lbl{font-family:var(--fm);font-size:9px;color:var(--ink-60);letter-spacing:.14em;text-transform:uppercase;padding:12px 18px 5px;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:8px 18px;cursor:pointer;color:var(--ink-60);font-size:13px;transition:all .13s;border-left:2px solid transparent;user-select:none;}
+.nav-item:hover{color:var(--ink);background:var(--parchment);}
+.nav-item.active{color:var(--terra);border-left-color:var(--terra);background:var(--terra-l);font-weight:500;}
+.nav-item .ni{width:15px;font-size:13px;}
+.sb-prog{margin:16px 14px 0;background:var(--parchment);border-radius:6px;border:1px solid var(--border);padding:13px;}
+.sp-lbl{font-family:var(--fm);font-size:9px;color:var(--ink-60);letter-spacing:.1em;text-transform:uppercase;margin-bottom:9px;}
+.sp-track{height:3px;background:var(--border-med);border-radius:2px;margin-bottom:6px;overflow:hidden;}
+.sp-fill{height:100%;border-radius:2px;background:var(--terra);transition:width .5s ease;}
+.sp-pct{font-family:var(--fm);font-size:12px;color:var(--terra);font-weight:500;}
+
+/* MAIN */
+.main{background:var(--cream);padding:28px 32px;overflow-y:auto;}
+.page{display:none;}.page.active{display:block;}
+
+/* KPI STRIP */
+.kpi-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin-bottom:28px;}
+.kpi{background:var(--white);border:1px solid var(--border-med);border-radius:10px;padding:17px 19px;position:relative;overflow:hidden;transition:box-shadow .17s;}
+.kpi:hover{box-shadow:0 3px 14px var(--ink-20);}
+.kpi::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;}
+.kpi.kt::after{background:var(--terra)}.kpi.kd::after{background:var(--danger)}.kpi.ko::after{background:var(--olive)}.kpi.ka::after{background:var(--amber)}.kpi.ks::after{background:var(--slate)}
+.kpi-lbl{font-family:var(--fm);font-size:9px;color:var(--ink-60);letter-spacing:.14em;text-transform:uppercase;margin-bottom:7px;}
+.kpi-val{font-family:var(--fd);font-size:34px;letter-spacing:.02em;line-height:1;color:var(--ink);margin-bottom:3px;}
+.kpi-sub{font-family:var(--fm);font-size:10px;color:var(--ink-60);}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.kpi{animation:fadeUp .35s ease both;}
+.kpi:nth-child(1){animation-delay:.04s}.kpi:nth-child(2){animation-delay:.09s}.kpi:nth-child(3){animation-delay:.14s}.kpi:nth-child(4){animation-delay:.19s}
+
+/* SECTION HEADER */
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.sec-title{font-family:var(--fs);font-size:18px;color:var(--ink);font-style:italic;}
+.sec-meta{font-family:var(--fm);font-size:10px;color:var(--ink-60);letter-spacing:.06em;}
+
+/* WEEK GRID */
+.week-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin-bottom:28px;}
+.wcard{background:var(--white);border:1px solid var(--border-med);border-radius:10px;overflow:hidden;transition:box-shadow .17s;}
+.wcard:hover{box-shadow:0 2px 12px var(--ink-20);}
+.wc-hdr{padding:12px 16px;border-bottom:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--parchment);}
+.wc-w{font-family:var(--fd);font-size:12px;letter-spacing:.1em;color:var(--ink-60);}
+.wc-t{font-size:12px;font-weight:500;color:var(--ink);margin-top:2px;}
+.wc-badge{font-family:var(--fm);font-size:9px;padding:3px 8px;border-radius:3px;letter-spacing:.06em;text-transform:uppercase;background:var(--parch2);color:var(--ink-60);border:1px solid var(--border-med);}
+.wc-body{padding:7px 0;}
+.wp{display:flex;gap:8px;align-items:center;padding:7px 16px 2px;}
+.wp-track{flex:1;height:2px;background:var(--border-med);border-radius:1px;overflow:hidden;}
+.wp-fill{height:100%;border-radius:1px;transition:width .5s ease;}
+.wp-lbl{font-family:var(--fm);font-size:9px;color:var(--ink-60);white-space:nowrap;}
+
+/* TASK ROWS */
+.trow{display:grid;grid-template-columns:18px 1fr auto;gap:9px;padding:7px 15px;align-items:start;cursor:pointer;transition:background .11s;border-radius:5px;margin:0 4px 2px;}
+.trow:hover{background:var(--parchment);}
+.trow.done .tname{text-decoration:line-through;opacity:.4;}
+.trow.done .tdot{background:var(--olive)!important;border-color:var(--olive)!important;}
+.tdot{width:14px;height:14px;border-radius:50%;border:1.5px solid var(--border-med);margin-top:2px;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .13s;background:var(--white);}
+.tdot.urg{border-color:var(--danger);}
+.tname{font-size:13px;color:var(--ink);line-height:1.4;}
+.tchips{display:flex;gap:5px;flex-wrap:wrap;margin-top:4px;}
+.chip{font-family:var(--fm);font-size:9px;padding:2px 6px;border-radius:3px;letter-spacing:.05em;text-transform:uppercase;}
+.ch-admin{background:var(--slate-l);color:var(--slate);border:1px solid rgba(58,74,92,.2);}
+.ch-infra{background:var(--terra-l);color:var(--terra);border:1px solid var(--terra-m);}
+.ch-compra{background:var(--olive-l);color:var(--olive);border:1px solid var(--olive-m);}
+.ch-comerc{background:#ede8f8;color:#5c3a8c;border:1px solid #ccc0e8;}
+.ch-urg{background:var(--danger-l);color:var(--danger);border:1px solid rgba(158,32,32,.25);}
+.ch-pesos{background:var(--amber-l);color:var(--amber);border:1px solid var(--amber-m);}
+.ch-who{background:var(--parch2);color:var(--ink-60);border:1px solid var(--border-med);}
+.ch-date{background:var(--parch2);color:var(--ink-60);border:1px solid var(--border-med);}
+.tright{font-family:var(--fm);font-size:10px;color:var(--ink-60);white-space:nowrap;margin-top:2px;opacity:.5;}
+
+/* FILTER BAR */
+.fbar{display:flex;gap:5px;margin-bottom:16px;flex-wrap:wrap;}
+.fbtn{font-family:var(--fm);font-size:10px;padding:5px 11px;border-radius:4px;border:1px solid var(--border-med);background:var(--white);color:var(--ink-60);cursor:pointer;letter-spacing:.08em;text-transform:uppercase;transition:all .13s;}
+.fbtn:hover{color:var(--ink);border-color:var(--ink-60);background:var(--parchment);}
+.fbtn.on{background:var(--terra);color:#fff;border-color:var(--terra);}
+
+/* CALENDAR */
+.cal-wrap{background:var(--white);border:1px solid var(--border-med);border-radius:10px;padding:18px;margin-bottom:28px;overflow-x:auto;}
+.cal-grid{display:grid;grid-template-columns:84px repeat(5,1fr);gap:4px;min-width:520px;}
+.cal-head{font-family:var(--fm);font-size:10px;color:var(--ink-60);padding:5px 6px;text-align:center;letter-spacing:.06em;}
+.cal-rl{font-family:var(--fm);font-size:9px;color:var(--ink-60);display:flex;align-items:center;padding:4px 5px;text-transform:uppercase;letter-spacing:.08em;}
+.cc{border-radius:5px;padding:5px 7px;min-height:32px;font-size:11px;line-height:1.35;}
+.cc.e{background:transparent;}
+.cc.c-adm{background:var(--slate-l);color:var(--slate);border:1px solid rgba(58,74,92,.2);}
+.cc.c-inf{background:var(--terra-l);color:var(--terra);border:1px solid var(--terra-m);}
+.cc.c-cmp{background:var(--olive-l);color:var(--olive);border:1px solid var(--olive-m);}
+.cc.c-hit{background:var(--amber-l);color:var(--amber);border:1px solid var(--amber-m);font-weight:600;}
+.cc.c-obr{background:var(--danger-l);color:var(--danger);border:1px solid rgba(158,32,32,.25);}
+.cal-sep{grid-column:1/-1;font-family:var(--fm);font-size:9px;color:var(--ink-60);text-transform:uppercase;letter-spacing:.12em;padding:12px 0 5px;border-top:1px solid var(--border-med);margin-top:7px;}
+.cal-sum-sep{grid-column:1/-1;height:1px;background:var(--border-med);margin:5px 0 2px;}
+.cal-sum-lbl{font-family:var(--fm);font-size:9px;text-transform:uppercase;letter-spacing:.08em;display:flex;align-items:center;padding:3px 5px;}
+.csc{border-radius:4px;padding:4px 6px;min-height:0;font-family:var(--fm);font-size:10px;line-height:1.4;text-align:right;}
+.csc.e{background:transparent;}
+.csc.ef{background:var(--danger-l);color:var(--danger);border:1px solid rgba(158,32,32,.2);}
+.csc.tr{background:var(--olive-l);color:var(--olive);border:1px solid var(--olive-m);}
+.csc.tot{background:var(--amber-l);color:var(--amber);border:1px solid var(--amber-m);font-weight:600;}
+.csc-t{font-size:8px;opacity:.7;display:block;margin-bottom:1px;}
+.cal-tot-bar{grid-column:1/-1;display:flex;justify-content:flex-end;align-items:baseline;gap:22px;padding:9px 5px 3px;border-top:1px solid var(--border-med);margin-top:3px;}
+.ctb-i{display:flex;align-items:baseline;gap:6px;}
+.ctb-l{font-family:var(--fm);font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-60);}
+.ctb-v{font-family:var(--fm);font-size:13px;font-weight:500;}
+
+/* PAYMENTS */
+.ptable{background:var(--white);border:1px solid var(--border-med);border-radius:10px;overflow:hidden;margin-bottom:0;}
+.p-hdr{display:grid;grid-template-columns:1fr 120px 100px 110px;gap:12px;padding:9px 18px;background:var(--parchment);border-bottom:1px solid var(--border-med);font-family:var(--fm);font-size:9px;color:var(--ink-60);letter-spacing:.12em;text-transform:uppercase;}
+.p-row{display:grid;grid-template-columns:1fr 120px 100px 110px;gap:12px;padding:10px 18px;border-bottom:0.5px solid var(--border);align-items:center;transition:background .11s;}
+.p-row:hover{background:var(--parchment);}
+.p-row:last-child{border-bottom:none;}
+.p-total{display:flex;justify-content:flex-end;align-items:baseline;gap:11px;padding:13px 18px;background:var(--terra-l);border-top:1px solid var(--terra-m);border-radius:0 0 10px 10px;}
+.pt-lbl{font-family:var(--fm);font-size:11px;color:var(--terra);letter-spacing:.06em;text-transform:uppercase;opacity:.8;}
+.pt-val{font-family:var(--fd);font-size:28px;color:var(--terra);letter-spacing:.02em;}
+.pnote{background:var(--amber-l);border:1px solid var(--amber-m);border-radius:8px;padding:11px 15px;font-family:var(--fm);font-size:11px;color:var(--amber);line-height:1.6;margin-top:13px;margin-bottom:28px;}
+
+/* TIMELINE */
+.tl{position:relative;padding-left:24px;margin-bottom:28px;}
+.tl::before{content:'';position:absolute;left:7px;top:8px;bottom:8px;width:1px;background:var(--border-med);}
+.tl-item{position:relative;margin-bottom:20px;}
+.tl-dot{position:absolute;left:-21px;top:6px;width:10px;height:10px;border-radius:50%;border:1.5px solid var(--border-med);background:var(--white);}
+.tl-dot.active{border-color:var(--terra);background:var(--terra);}
+.tl-dot.hito{border-color:var(--amber);background:var(--amber);}
+.tl-date{font-family:var(--fm);font-size:10px;color:var(--ink-60);letter-spacing:.06em;margin-bottom:3px;}
+.tl-title{font-size:14px;color:var(--ink);font-weight:500;margin-bottom:4px;}
+.tl-desc{font-size:12px;color:var(--ink-60);line-height:1.5;}
+.tl-hito{display:inline-block;font-family:var(--fm);font-size:9px;padding:2px 8px;border-radius:3px;background:var(--amber-l);color:var(--amber);border:1px solid var(--amber-m);letter-spacing:.08em;text-transform:uppercase;margin-bottom:5px;}
+
+/* TEAM */
+.team-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin-bottom:28px;}
+.tcard{background:var(--white);border:1px solid var(--border-med);border-radius:10px;padding:17px;transition:box-shadow .17s;}
+.tcard:hover{box-shadow:0 2px 12px var(--ink-20);}
+.tav{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--fd);font-size:15px;letter-spacing:.05em;margin-bottom:11px;}
+.tname{font-size:14px;font-weight:600;color:var(--ink);margin-bottom:2px;}
+.trole{font-size:11px;color:var(--ink-60);margin-bottom:11px;line-height:1.4;}
+.tcount{font-size:22px;font-family:var(--fd);letter-spacing:.02em;color:var(--ink);}
+.ttasks{font-family:var(--fm);font-size:10px;color:var(--ink-60);}
+
+/* URGENT CONTAINER */
+.urg-box{background:var(--white);border:1px solid var(--border-med);border-radius:10px;overflow:hidden;padding:7px 0;margin-bottom:28px;}
+
+/* CASHFLOW */
+.cf-wrap{margin-bottom:28px;}
+.cf-week{background:var(--white);border:1px solid var(--border-med);border-radius:10px;overflow:hidden;margin-bottom:12px;}
+.cf-week-hdr{display:grid;grid-template-columns:1fr auto auto;gap:16px;align-items:center;padding:13px 18px;background:var(--parchment);border-bottom:1px solid var(--border);}
+.cf-week-title{font-family:var(--fd);font-size:16px;letter-spacing:.08em;color:var(--ink);}
+.cf-week-dates{font-family:var(--fm);font-size:10px;color:var(--ink-60);}
+.cf-week-total{font-family:var(--fd);font-size:22px;letter-spacing:.02em;}
+.cf-rows{padding:4px 0 8px;}
+.cf-row{display:grid;grid-template-columns:18px 1fr 120px 90px;gap:10px;padding:8px 18px;align-items:center;border-bottom:0.5px solid var(--border);font-size:13px;}
+.cf-row:last-child{border-bottom:none;}
+.cf-row:hover{background:var(--parchment);}
+.cf-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.cf-cat{font-size:11px;color:var(--ink-60);font-family:var(--fm);text-transform:uppercase;letter-spacing:.07em;margin-top:2px;}
+.cf-monto{font-family:var(--fm);font-size:13px;font-weight:500;text-align:right;}
+.cf-tipo{text-align:right;}
+.cf-week-footer{display:flex;justify-content:space-between;align-items:center;padding:10px 18px;background:var(--parch2);border-top:1px solid var(--border-med);}
+.cf-footer-col{text-align:center;}
+.cf-footer-lbl{font-family:var(--fm);font-size:9px;color:var(--ink-60);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px;}
+.cf-footer-val{font-family:var(--fm);font-size:13px;font-weight:500;}
+.cf-grand{background:var(--terra-l);border:1px solid var(--terra-m);border-radius:10px;padding:16px 20px;display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+.cf-grand-left{font-family:var(--fm);font-size:10px;color:var(--terra);text-transform:uppercase;letter-spacing:.1em;}
+.cf-grand-num{font-family:var(--fd);font-size:32px;color:var(--terra);letter-spacing:.02em;}
+.cf-grand-sub{font-family:var(--fm);font-size:10px;color:rgba(184,74,32,.6);margin-top:2px;}
+.cf-alert{font-family:var(--fm);font-size:11px;line-height:1.6;padding:11px 15px;border-radius:8px;margin-bottom:12px;}
+.cf-alert.warn{background:var(--amber-l);border:1px solid var(--amber-m);color:var(--amber);}
+.cf-alert.ok{background:var(--olive-l);border:1px solid var(--olive-m);color:var(--olive);}
+.cf-chart-wrap{background:var(--white);border:1px solid var(--border-med);border-radius:10px;padding:18px;margin-bottom:12px;}
+
+/* MERCH */
+.merch-prow{background:var(--white);border:1px solid var(--border-med);border-radius:10px;margin-bottom:7px;overflow:hidden;transition:box-shadow .17s;}
+.merch-prow:hover{box-shadow:0 2px 10px var(--ink-20);}
+.merch-prow.urg{border-left:3px solid var(--danger);}
+.merch-ph{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:start;padding:10px 16px;border-bottom:0.5px solid var(--border);}
+.merch-cat{font-family:var(--fm);font-size:9px;color:var(--ink-60);text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px;}
+.merch-name{font-size:14px;font-weight:500;color:var(--ink);}
+.merch-pb{padding:8px 16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:var(--parchment);}
+::-webkit-scrollbar-thumb{background:var(--parch2);border-radius:2px;}
+::-webkit-scrollbar-thumb:hover{background:var(--border-med);}
+
+/* BOT */
+.bot-fab{position:fixed;bottom:24px;right:24px;width:48px;height:48px;border-radius:50%;background:var(--terra);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(184,74,32,.4);z-index:200;transition:transform .15s,box-shadow .15s;}
+.bot-fab:hover{transform:scale(1.07);box-shadow:0 6px 22px rgba(184,74,32,.5);}
+.bot-fab svg{width:22px;height:22px;fill:#fff;}
+.bot-panel{position:fixed;bottom:82px;right:24px;width:360px;max-height:520px;background:var(--white);border:1px solid var(--border-med);border-radius:14px;box-shadow:0 8px 32px rgba(26,20,16,.18);z-index:200;display:flex;flex-direction:column;overflow:hidden;transition:opacity .18s,transform .18s;}
+.bot-panel.hidden{opacity:0;pointer-events:none;transform:translateY(10px);}
+.bot-header{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--parchment);}
+.bot-title{font-family:var(--fd);font-size:16px;letter-spacing:.06em;color:var(--terra);}
+.bot-subtitle{font-family:var(--fm);font-size:9px;color:var(--ink-60);letter-spacing:.08em;text-transform:uppercase;margin-top:1px;}
+.bot-api-row{padding:8px 12px;border-bottom:1px solid var(--border);display:flex;gap:6px;align-items:center;background:var(--parch2);}
+.bot-api-input{flex:1;font-family:var(--fm);font-size:11px;padding:5px 8px;border-radius:5px;border:1px solid var(--border-med);background:var(--white);color:var(--ink);outline:none;}
+.bot-api-input:focus{border-color:var(--terra);}
+.bot-api-btn{font-family:var(--fm);font-size:10px;padding:5px 10px;border-radius:5px;border:1px solid var(--terra-m);background:var(--terra-l);color:var(--terra);cursor:pointer;white-space:nowrap;letter-spacing:.05em;}
+.bot-api-btn.saved{background:var(--olive-l);border-color:var(--olive-m);color:var(--olive);}
+.bot-msgs{flex:1;overflow-y:auto;padding:10px 12px;display:flex;flex-direction:column;gap:8px;}
+.bot-msg{padding:8px 11px;border-radius:8px;font-size:12px;line-height:1.5;max-width:92%;}
+.bot-msg.user{background:var(--terra-l);color:var(--ink);align-self:flex-end;border-bottom-right-radius:3px;}
+.bot-msg.assistant{background:var(--parchment);color:var(--ink);align-self:flex-start;border-bottom-left-radius:3px;}
+.bot-msg.system{background:var(--olive-l);color:var(--olive);font-family:var(--fm);font-size:11px;align-self:center;text-align:center;border-radius:6px;}
+.bot-msg.err{background:var(--danger-l);color:var(--danger);font-family:var(--fm);font-size:11px;align-self:center;}
+.bot-typing{display:flex;gap:4px;padding:8px 12px;align-self:flex-start;}
+.bot-typing span{width:6px;height:6px;border-radius:50%;background:var(--ink-60);animation:blink 1.2s infinite;}
+.bot-typing span:nth-child(2){animation-delay:.2s;}
+.bot-typing span:nth-child(3){animation-delay:.4s;}
+@keyframes blink{0%,80%,100%{opacity:.2}40%{opacity:1}}
+.bot-input-row{padding:10px 12px;border-top:1px solid var(--border);display:flex;gap:7px;align-items:flex-end;}
+.bot-textarea{flex:1;font-family:var(--fb);font-size:13px;padding:7px 10px;border-radius:8px;border:1px solid var(--border-med);background:var(--cream);color:var(--ink);resize:none;outline:none;line-height:1.4;max-height:90px;overflow-y:auto;}
+.bot-textarea:focus{border-color:var(--terra);}
+.bot-send{width:34px;height:34px;border-radius:8px;background:var(--terra);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .13s;}
+.bot-send:hover{background:var(--terra-dark,#8b3518);}
+.bot-send:disabled{background:var(--parch2);cursor:not-allowed;}
+.bot-send svg{width:15px;height:15px;fill:#fff;}
+.bot-close{background:none;border:none;cursor:pointer;color:var(--ink-60);font-size:18px;padding:0 2px;line-height:1;}
+.bot-close:hover{color:var(--ink);}
+@media(max-width:900px){.bot-panel{width:calc(100vw - 32px);right:16px;bottom:76px;}.bot-fab{bottom:16px;right:16px;}}
+
+</head>
+<body>
+<div class="shell">
+
+<header class="topbar">
+  <div class="tb-brand">
+    <div class="tb-logo">GINOTECA</div>
+    <div class="tb-tag">Command Center v3 · Apertura 2025</div>
+  </div>
+  <div class="tb-right">
+    <div class="tb-date" id="live-date"></div>
+    <div style="display:flex;align-items:center;gap:6px">
+      <span id="save-lbl" style="font-family:var(--fm);font-size:10px;color:var(--ink-60);letter-spacing:.05em"></span>
+      <span id="save-ind" style="font-family:var(--fm);font-size:10px;background:var(--olive-l);color:var(--olive);border:1px solid var(--olive-m);padding:3px 9px;border-radius:4px;opacity:0;transition:opacity .3s;letter-spacing:.06em">✓ guardado</span>
+      <button onclick="resetState()" title="Borrar estado guardado y volver al inicio" style="font-family:var(--fm);font-size:9px;padding:4px 9px;border-radius:4px;border:1px solid var(--border-med);background:transparent;color:var(--ink-60);cursor:pointer;letter-spacing:.07em;text-transform:uppercase" onmouseover="this.style.color='var(--danger)';this.style.borderColor='var(--danger)'" onmouseout="this.style.color='var(--ink-60)';this.style.borderColor='var(--border-med)'">↺ reset</button>
+    </div>
+    <div class="tb-phase">Fase 1 · Planificación crítica</div>
+  </div>
+</header>
+
+<nav class="sidebar">
+  <div style="border-bottom:1px solid var(--border)">
+    <div class="sb-lbl">Vistas</div>
+    <div class="nav-item active" onclick="sp('dashboard')"><span class="ni">◈</span> Dashboard</div>
+    <div class="nav-item" onclick="sp('cashflow')"><span class="ni">$</span> Flujo de caja</div>
+    <div class="nav-item" onclick="sp('backlog')"><span class="ni">≡</span> Backlog</div>
+    <div class="nav-item" onclick="sp('calendario')"><span class="ni">⬚</span> Calendario</div>
+    <div class="nav-item" onclick="sp('pagos')"><span class="ni">↗</span> Pagos</div>
+    <div class="nav-item" onclick="sp('mercaderia')"><span class="ni">⊞</span> Mercadería</div>
+    <div class="nav-item" onclick="sp('timeline')"><span class="ni">↓</span> Timeline</div>
+    <div class="nav-item" onclick="sp('equipo')"><span class="ni">◉</span> Equipo</div>
+  </div>
+  <div style="margin-top:auto;padding:12px 0 0">
+    <div class="sb-prog">
+      <div class="sp-lbl">Avance global</div>
+      <div class="sp-track"><div class="sp-fill" id="sb-bar" style="width:0%"></div></div>
+      <div class="sp-pct" id="sb-pct">0%</div>
+    </div>
+  </div>
+</nav>
+
+<main class="main">
+
+<!-- DASHBOARD -->
+<div class="page active" id="page-dashboard">
+  <div class="kpi-strip" id="kpi-strip"></div>
+  <div class="sec-hdr"><div class="sec-title">Urgentes — esta semana</div><div class="sec-meta" id="urg-count"></div></div>
+  <div id="urgent-list"></div>
+  <div class="sec-hdr"><div class="sec-title">Hitos de apertura</div></div>
+  <div class="tl" id="hitos-tl"></div>
+  <div class="sec-hdr"><div class="sec-title">Equipo</div></div>
+  <div class="team-grid" id="team-dash"></div>
+</div>
+
+<!-- CASHFLOW -->
+<div class="page" id="page-cashflow">
+  <div class="sec-hdr" style="margin-bottom:18px">
+    <div class="sec-title">Flujo de caja — apertura</div>
+    <div class="sec-meta">12 may → 6 jun · consolidado</div>
+  </div>
+  <div id="cf-content"></div>
+</div>
+
+<!-- BACKLOG -->
+<div class="page" id="page-backlog">
+  <div class="sec-hdr" style="margin-bottom:16px">
+    <div class="sec-title">Backlog completo</div>
+    <div class="sec-meta" id="bl-count"></div>
+  </div>
+  <div class="fbar" id="fbar"></div>
+  <div class="week-grid" id="bl-weeks"></div>
+</div>
+
+<!-- CALENDARIO -->
+<div class="page" id="page-calendario">
+  <div class="sec-hdr" style="margin-bottom:16px">
+    <div class="sec-title">Calendario semanal</div>
+    <div class="sec-meta">Semanas 1–2 · críticas</div>
+  </div>
+  <div class="cal-wrap"><div class="cal-grid" id="cal-grid"></div></div>
+</div>
+
+<!-- PAGOS -->
+<div class="page" id="page-pagos">
+  <div class="sec-hdr" style="margin-bottom:16px">
+    <div class="sec-title">Calendario de pagos</div>
+  </div>
+  <div class="ptable" id="ptable"></div>
+  <div class="p-total">
+    <span class="pt-lbl">Total confirmado</span>
+    <span class="pt-val" id="p-total-val"></span>
+  </div>
+  <div class="pnote" id="pnote"></div>
+</div>
+
+<!-- MERCADERÍA -->
+<div class="page" id="page-mercaderia">
+  <div class="sec-hdr" style="margin-bottom:6px">
+    <div class="sec-title">Calendario de compras — mercadería</div>
+    <div class="sec-meta">Stock completo · pedido de apertura</div>
+  </div>
+  <div id="merch-content"></div>
+</div>
+
+<!-- TIMELINE -->
+<div class="page" id="page-timeline">
+  <div class="sec-hdr" style="margin-bottom:20px">
+    <div class="sec-title">Timeline de apertura</div>
+    <div class="sec-meta">12 may → 6 jun</div>
+  </div>
+  <div class="tl" id="full-tl"></div>
+</div>
+
+<!-- EQUIPO -->
+<div class="page" id="page-equipo">
+  <div class="sec-hdr" style="margin-bottom:16px">
+    <div class="sec-title">Equipo</div>
+  </div>
+  <div class="team-grid" id="team-full"></div>
+</div>
+
+</main>
+</div>
+
+<script>
+// ── DATA ────────────────────────────────────────────────────────
+const TASKS=[
+  {id:1, name:'Firma contrato de alquiler',                               cat:'admin',week:1,day:'Vie 16/05',urg:true, monto:1900000,pago:'Efectivo',     who:['MG','CR'],done:false},
+  {id:2, name:'ReBA — tramitar / verificar vigencia y titularidad',       cat:'admin',week:1,day:'Esta sem', urg:true, monto:null,  pago:null,            who:['CR'],     done:false},
+  {id:3, name:'Habilitación municipal del local (apertura expediente)',   cat:'admin',week:1,day:'Esta sem', urg:true, monto:null,  pago:null,            who:['CR'],     done:false},
+  {id:4, name:'Permiso REVA — venta de alcohol (iniciar trámite)',        cat:'admin',week:1,day:'Esta sem', urg:true, monto:null,  pago:null,            who:['CR'],     done:false},
+  {id:5, name:'Seguro local: robo + incendio + RC — cotizar y contratar', cat:'admin',week:1,day:'Esta sem', urg:false,monto:null,  pago:'Mensual',       who:['CR'],     done:false},
+  {id:6, name:'Seguridad — evaluar alarma monitoreada vs sistema propio', cat:'admin',week:3,day:'S3–S4',    urg:false,monto:null,  pago:'A definir',     who:['CR'],     done:false},
+  {id:7, name:'Apertura cuenta PyME / empresa',                           cat:'admin',week:1,day:'Esta sem', urg:false,monto:null,  pago:null,            who:['CR'],     done:false},
+  {id:8, name:'Definir diseño del local',                                 cat:'infra',week:1,day:'Jue 15/05',urg:true, monto:null,  pago:null,            who:['MG','LA'],done:false},
+  {id:9, name:'Definir piso (tipo y modelo)',                             cat:'infra',week:1,day:'Jue 15/05',urg:true, monto:null,  pago:null,            who:['LA'],     done:false},
+  {id:10,name:'Definir parte eléctrica',                                 cat:'infra',week:1,day:'Jue 15/05',urg:true, monto:null,  pago:null,            who:['MG','LA'],done:false},
+  {id:11,name:'Cómputo de materiales y presupuesto de obra',             cat:'infra',week:1,day:'Jue 15/05',urg:true, monto:null,  pago:null,            who:['LA'],     done:false},
+  {id:12,name:'Cotizar obra — Leandro, Nicolás y René (visita al local)',cat:'infra',week:1,day:'Esta sem', urg:true, monto:null,  pago:null,            who:['MG'],     done:false},
+  {id:13,name:'Verificar medidas batea — ¿pasa por puerta?',             cat:'infra',week:1,day:'Mar 13/05',urg:true, monto:null,  pago:null,            who:['MG'],     done:false},
+  {id:14,name:'Rejas — confirmar con contacto de Jimena + listar mat.',  cat:'infra',week:1,day:'Esta sem', urg:false,monto:null,  pago:null,            who:['JI'],     done:false},
+  {id:15,name:'Mesada acero inoxidable — definir medidas y proveedor',   cat:'infra',week:1,day:'Jue 15/05',urg:true, monto:350000,pago:'A cotizar',     who:['MG','LA'],done:false},
+  {id:16,name:'Grifería — definir modelo y adquirir',                    cat:'compra',week:1,day:'S1–S2',    urg:false,monto:null,  pago:'TRJ cuotas',    who:['MG'],     done:false},
+  {id:17,name:'Extractor de aire — evaluar necesidad e instalar',        cat:'infra',week:2,day:'S2',        urg:false,monto:null,  pago:'A definir',     who:['MG'],     done:false},
+  {id:18,name:'Pagar batea ✓ PAGADA',                                         cat:'compra',week:1,day:'Mar 13/05',urg:false,monto:2700000,pago:'$1.4M EF + saldo Visa',who:['MG','CR'],done:true},
+  {id:19,name:'Comprar 2× heladeras Briket 430L — ML ✓ COMPRADA',            cat:'compra',week:1,day:'Esta sem', urg:false,monto:2339982,pago:'18 cuotas SI',       who:['MG','CR'],done:true},
+  {id:191,name:'Envasadora al vacío Neovac VAC510E inox ✓ COMPRADA',         cat:'compra',week:1,day:'Esta sem', urg:false,monto:999999, pago:'12 cuotas SI',       who:['MG'],     done:true},
+  {id:192,name:'Cortadora fiambre Moretti Trecento 300mm 0.33hp ✓ COMPRADA', cat:'compra',week:1,day:'Esta sem', urg:false,monto:1137798,pago:'12 cuotas SI',       who:['MG'],     done:true},
+  {id:193,name:'Zorras logística ×2 ✓ COMPRADAS',                            cat:'compra',week:1,day:'Esta sem', urg:false,monto:159980, pago:'Efectivo',            who:['MG'],     done:true},
+  {id:20,name:'Comprar piso + pintura',                                   cat:'compra',week:1,day:'Vie 16/05',urg:true, monto:null,  pago:'TRJ cuotas',   who:['MG','CR'],done:false},
+  {id:21,name:'Definir y pagar muebles / estanterías principales',       cat:'compra',week:1,day:'Esta sem', urg:true, monto:null,  pago:'A definir',     who:['MG','CR'],done:false},
+  {id:22,name:'Termotanque eléctrico — adquirir',                        cat:'compra',week:1,day:'S1–S2',    urg:false,monto:null,  pago:'A definir',     who:['CR'],     done:false},
+  {id:23,name:'Electrodomésticos chicos (pava + horno) — Naldo',         cat:'compra',week:1,day:'Esta sem', urg:false,monto:null,  pago:'TRJ cuotas',   who:['CR'],     done:false},
+  {id:24,name:'Matafuego ABC 1kg c/IRAM × 2 unidades',                   cat:'compra',week:1,day:'Esta sem', urg:true, monto:80000, pago:'Efectivo/TRJ', who:['CR'],     done:false},
+  {id:25,name:'Luz emergencia LED × 2 (Atomlux / Sica)',                 cat:'compra',week:1,day:'Esta sem', urg:true, monto:60000, pago:'TRJ',          who:['CR'],     done:false},
+  {id:26,name:'Botiquín primeros auxilios completo',                      cat:'compra',week:1,day:'Esta sem', urg:true, monto:25000, pago:'TRJ',          who:['CR'],     done:false},
+  {id:27,name:'Insumos operativos: tachos, cuchillos, tabla, utensilios',cat:'compra',week:1,day:'Esta sem', urg:false,monto:80000, pago:'TRJ',          who:['CR'],     done:false},
+  {id:28,name:'Inicio obra gruesa — HITO FIJO',                          cat:'infra',week:2,day:'Lun 19/05',urg:true, monto:null,  pago:null,            who:['MG'],     done:false},
+  {id:29,name:'Colocación piso',                                          cat:'infra',week:2,day:'S2',        urg:false,monto:null,  pago:null,            who:['LA'],     done:false},
+  {id:30,name:'Pintura',                                                  cat:'infra',week:2,day:'S2',        urg:false,monto:null,  pago:null,            who:['LA'],     done:false},
+  {id:31,name:'Instalación eléctrica',                                    cat:'infra',week:2,day:'S2',        urg:false,monto:null,  pago:null,            who:['MG'],     done:false},
+  {id:32,name:'Instalación termotanque',                                  cat:'infra',week:2,day:'S2',        urg:false,monto:null,  pago:null,            who:['MG'],     done:false},
+  {id:33,name:'Instalación batea + grifería',                             cat:'infra',week:2,day:'S2',        urg:false,monto:null,  pago:null,            who:['MG'],     done:false},
+  {id:34,name:'Instalación mesada inox',                                  cat:'infra',week:2,day:'S2',        urg:false,monto:null,  pago:null,            who:['MG'],     done:false},
+  {id:35,name:'Colocaciones finales y detalles',                          cat:'infra',week:3,day:'S3',        urg:false,monto:null,  pago:null,            who:['LA'],     done:false},
+  {id:36,name:'Instalación estanterías / muebles principales',           cat:'infra',week:3,day:'S3/1jun',   urg:false,monto:null,  pago:null,            who:['MG','LA'],done:false},
+  {id:37,name:'Instalación rejas',                                        cat:'infra',week:3,day:'S3',        urg:false,monto:null,  pago:null,            who:['JI'],     done:false},
+  {id:38,name:'Aire acondicionado — adquirir e instalar',                cat:'compra',week:3,day:'S3 máx',   urg:false,monto:null,  pago:'TRJ cuotas',   who:['CR'],     done:false},
+  {id:39,name:'Pagar proveedores bebidas (S2)',                           cat:'comerc',week:2,day:'S2',        urg:false,monto:9626561,pago:'TRJ/Trans',   who:['MG','JI'],done:false},
+  {id:40,name:'Pagar proveedores almacén+fiambres (S2)',                  cat:'comerc',week:2,day:'S2',        urg:false,monto:3934830,pago:'TRJ/Trans',   who:['MG','JI'],done:false},
+  {id:41,name:'Activar sistema de stock (La Curaduría)',                  cat:'comerc',week:4,day:'1 jun',     urg:false,monto:null,  pago:null,            who:['MG'],     done:false},
+  {id:42,name:'Activación Instagram + WhatsApp Business',                 cat:'comerc',week:4,day:'1 jun',     urg:false,monto:null,  pago:null,            who:['JI'],     done:false},
+  {id:43,name:'Apertura operativa — acomodar stock y ajustar layout',    cat:'comerc',week:4,day:'1 jun',     urg:false,monto:null,  pago:null,            who:['MG','JI'],done:false},
+];
+
+// ── CASHFLOW DATA ────────────────────────────────────────────────
+// S1 confirmed + S2 merch with Espinosa -4.5%
+const ESPINOSA_BRUTO=4596696, DESC=0.045;
+const ESPINOSA_NETO=Math.round(ESPINOSA_BRUTO*(1-DESC));
+
+const CF_WEEKS=[
+  {
+    n:1, label:'Semana 1', dates:'12–16 mayo',
+    items:[
+      {desc:'Contrato de alquiler',               cat:'Admin',   ef:1900000,trj:0,      nota:'Efectivo · Vie 16/05'},
+      {desc:'Batea ✓ PAGADA',                     cat:'Equip.',  ef:1400000,trj:1300000,nota:'$1.4M EF (1.000 USD × 1.400) + saldo Visa cierre'},
+      {desc:'Heladeras Briket 430L ×2 — ML ✓ COMPRADA',   cat:'Equip.',  ef:0,      trj:2339982,nota:'18 cuotas sin interés · $129.999/mes'},
+      {desc:'Envasadora Neovac VAC510E inox ✓ COMPRADA',   cat:'Equip.',  ef:0,      trj:999999, nota:'12 cuotas sin interés · $83.333/mes'},
+      {desc:'Cortadora fiambre Moretti 300mm ✓ COMPRADA',  cat:'Equip.',  ef:0,      trj:1137798,nota:'12 cuotas sin interés · $94.817/mes'},
+      {desc:'Zorras logística ×2 ✓ COMPRADAS',             cat:'Equip.',  ef:159980, trj:0,      nota:'Contado efectivo'},
+      {desc:'Seguridad y emergencia (mataf.+luz+botiq.)', cat:'Seguridad',ef:0,trj:165000,nota:'~$165.000 ref. ML'},
+      {desc:'Mesada acero inox (cotización)',       cat:'Infra',   ef:0,      trj:350000, nota:'Ref. ~$350.000 · a confirmar'},
+      {desc:'Piso + pintura',                      cat:'Obra',    ef:0,      trj:null,   nota:'A cotizar · Jue 15/05'},
+      {desc:'Muebles / estanterías',               cat:'Mobil.',  ef:null,   trj:null,   nota:'A cotizar esta semana'},
+      {desc:'Electrodomésticos chicos — Naldo',    cat:'Equip.',  ef:0,      trj:null,   nota:'A cotizar'},
+      {desc:'Insumos operativos',                  cat:'Operac.', ef:0,      trj:80000,  nota:'Ref. ~$80.000'},
+    ]
+  },
+  {
+    n:2, label:'Semana 2', dates:'19–23 mayo',
+    items:[
+      {desc:'TIENDA ESPINOSA — bebidas (−4.5%)',  cat:'Merch.',  ef:0,      trj:ESPINOSA_NETO, nota:`Neto c/descuento · bruto ${fp(ESPINOSA_BRUTO)}`},
+      {desc:'DANKON — almacén gourmet',            cat:'Merch.',  ef:0,      trj:2809650, nota:'Conservas, aderezos, pastas, jugos'},
+      {desc:'SAN GIORGIO — arroces + confituras', cat:'Merch.',  ef:0,      trj:1417279, nota:'Arroces gourmet, Chiaverini'},
+      {desc:'PALADINI — fiambres y quesos',        cat:'Merch.',  ef:707609, trj:0,       nota:'Efectivo · jamón cocido, quesos'},
+      {desc:'LOYDIS — gin artesanal MdP',          cat:'Merch.',  ef:489586, trj:0,       nota:'Efectivo · Oso Negro, Casa Rosa, Mare, Malaria'},
+      {desc:'TENKI — tés artesanales Bariloche',   cat:'Merch.',  ef:0,      trj:1030400, nota:'15 referencias'},
+      {desc:'BENSOR — infusiones premium',         cat:'Merch.',  ef:0,      trj:396212,  nota:'Matcha, Chai, Cúrcuma, Cacao, Remolacha'},
+      {desc:'LA CAJA BUSINESS — cervezas artes.', cat:'Merch.',  ef:0,      trj:150012,  nota:'Blest IPA y variedades'},
+      {desc:'CAGNOLI — fiambres artesanales',      cat:'Merch.',  ef:null,   trj:null,    nota:'⚠ Cotizar antes Jue 15/05'},
+      {desc:'Mano de obra obra gruesa',            cat:'Obra',    ef:null,   trj:null,    nota:'Definir en cómputo Jue 15/05'},
+    ]
+  },
+  {
+    n:3, label:'Semana 3', dates:'26–30 mayo',
+    items:[
+      {desc:'VILLASUR — snacks + jugos + lact. veg.', cat:'Merch.',ef:0,   trj:379394,  nota:'Gauchitas, Zyma, Estancia, Pampa Vida'},
+      {desc:'SHIO GOURMET — sales artesanales',     cat:'Merch.',  ef:0,      trj:100000, nota:'Pack inicial x45'},
+      {desc:'GRAN DUOMO — vinos',                   cat:'Merch.',  ef:0,      trj:750000, nota:'10 cajas variadas'},
+      {desc:'DELECHESABOR — dulce de leche',        cat:'Merch.',  ef:0,      trj:132000, nota:'x24 unidades surtidas'},
+      {desc:'ORIENTES (MdP) — tés locales',         cat:'Merch.',  ef:null,   trj:null,   nota:'Contactar esta semana · precio a definir'},
+      {desc:'Mano de obra obra fina + colocaciones',cat:'Obra',    ef:null,   trj:null,   nota:'A definir'},
+      {desc:'Aire acondicionado (si se decide)',    cat:'Equip.',  ef:0,      trj:null,   nota:'S3 máximo · TRJ cuotas'},
+    ]
+  },
+  {
+    n:4, label:'Semana 4', dates:'2–6 junio',
+    items:[
+      {desc:'Acomodar stock + ajustar layout',      cat:'Operac.', ef:0,      trj:0,      nota:'Apertura operativa'},
+      {desc:'Activar Instagram + WhatsApp Business',cat:'Mktg.',   ef:0,      trj:0,      nota:'Jimena'},
+      {desc:'Sistema de stock La Curaduría',        cat:'Operac.', ef:0,      trj:0,      nota:'Mauricio'},
+    ]
+  }
+];
+
+const WEEKS=[
+  {n:1,label:'Semana 1',dates:'12–16 may',desc:'Planificación · Admin · Hitos',        color:'#b84a20'},
+  {n:2,label:'Semana 2',dates:'19–23 may',desc:'Obra gruesa + Pago mercadería',         color:'#9e2020'},
+  {n:3,label:'Semana 3',dates:'26–30 may',desc:'Obra fina · Reposición · Rejas · AC', color:'#3d5a3e'},
+  {n:4,label:'Semana 4',dates:'2–6 jun',  desc:'Mercadería llega · Apertura operativa',color:'#3a4a5c'},
+];
+
+const TEAM=[
+  {ini:'MG',name:'Mauricio',role:'Planificación y dirección',av:'background:#f5e0d4;color:#b84a20'},
+  {ini:'LA',name:'Lara',    role:'Diseño y cómputo de obra', av:'background:#ede8f8;color:#5c3a8c'},
+  {ini:'JI',name:'Jimena',  role:'Marketing y comercial',    av:'background:#d8e8d8;color:#3d5a3e'},
+  {ini:'CR',name:'Cristian',role:'Admin y proveedores',      av:'background:#d8e0ec;color:#3a4a5c'},
+];
+
+const CAT_META={
+  admin: {label:'Admin',    cls:'ch-admin'},
+  infra: {label:'Infra',    cls:'ch-infra'},
+  compra:{label:'Compras',  cls:'ch-compra'},
+  comerc:{label:'Comercial',cls:'ch-comerc'},
+};
+
+const HITOS=[
+  {date:'Mar 13/05',title:'Batea pagada $2.7M ✓',                type:'active',desc:'$1.400.000 EF (1.000 USD × $1.400) + saldo Visa al cierre. Verificación de medidas OK.'},
+  {date:'Jue 15/05',title:'Cómputo cerrado + diseño aprobado',   type:'hito',  desc:'Lara entrega presupuesto. Piso, eléctrica y mesada definidos. Muebles pagados.'},
+  {date:'Vie 16/05',title:'Contrato firmado + materiales comprados', type:'hito',desc:'Pago $1.900.000 efectivo. Compra piso + pintura tarjeta.'},
+  {date:'Lun 19/05',title:'Inicio obra gruesa — HITO FIJO',      type:'hito',  desc:'Independiente del contrato. Arranca sin excepción.'},
+  {date:'19–23/05', title:'Pago proveedores mercadería',          type:'hito',  desc:'Espinosa (−4,5%), Dankon, San Giorgio, Paladini, Loydis, Tenki, Bensor. Total ~$11.6M + Cagnoli.'},
+  {date:'26–30/05', title:'Obra fina + colocaciones cerradas',    type:'',      desc:'Estanterías, rejas, instalaciones. Local listo para recibir mercadería.'},
+  {date:'Anteúlt/últ may',title:'Mercadería entra al local',      type:'hito',  desc:'Recepción y acomodado de stock. Obra terminada.'},
+  {date:'1ª sem jun',title:'Apertura operativa',                  type:'hito',  desc:'Gins artesanales, almacén gourmet, sistemas activos, Instagram live.'},
+];
+
+let tasks=TASKS.map(t=>({...t}));
+
+// ── LOCALSTORAGE ─────────────────────────────────────────────────
+const LS_KEY='ginoteca_v3';
+
+function saveState(){
+  try{
+    const state={
+      tasks: tasks.map(t=>({id:t.id, done:t.done, week:t.week})),
+      saved: new Date().toISOString()
+    };
+    localStorage.setItem(LS_KEY, JSON.stringify(state));
+    // flash indicator
+    const ind=document.getElementById('save-ind');
+    if(ind){ ind.style.opacity='1'; setTimeout(()=>ind.style.opacity='0',1200); }
+  }catch(e){}
+}
+
+function loadState(){
+  try{
+    const raw=localStorage.getItem(LS_KEY);
+    if(!raw)return;
+    const state=JSON.parse(raw);
+    if(!state.tasks)return;
+    state.tasks.forEach(s=>{
+      const t=tasks.find(x=>x.id===s.id);
+      if(t){ t.done=s.done; t.week=s.week; }
+    });
+    // show last saved time in topbar
+    if(state.saved){
+      const d=new Date(state.saved);
+      const lbl=document.getElementById('save-lbl');
+      if(lbl) lbl.textContent=`guardado ${d.getDate()}/${d.getMonth()+1} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    }
+  }catch(e){}
+}
+
+// ── UTILS ─────────────────────────────────────────────────────────
+function fp(n){return n==null?'—':'$'+Math.round(n).toLocaleString('es-AR');}
+function chip(cls,t){return `<span class="chip ${cls}">${t}</span>`;}
+
+function taskChips(t){
+  const m=CAT_META[t.cat];
+  let h=chip(m.cls,m.label);
+  if(t.urg) h+=chip('ch-urg','Urgente');
+  if(t.day) h+=chip('ch-date',t.day);
+  if(t.monto) h+=chip('ch-pesos',fp(t.monto));
+  if(t.pago)  h+=chip('ch-who',t.pago);
+  t.who.forEach(w=>h+=chip('ch-who',w));
+  return h;
+}
+
+function taskRow(t,sw=false){
+  const dc=t.urg?'urg':'';
+  return `<div class="trow${t.done?' done':''}" onclick="toggle(${t.id})">
+    <div class="tdot ${dc}">${t.done?'<svg width="8" height="8" viewBox="0 0 8 8"><polyline points="1,4 3.5,6.5 7,1.5" fill="none" stroke="#3d5a3e" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>':''}</div>
+    <div class="tb"><div class="tname">${t.name}</div><div class="tchips">${taskChips(t)}</div></div>
+    <div class="tright">${sw?'S'+t.week:''}</div>
+  </div>`;
+}
+
+function toggle(id){const t=tasks.find(x=>x.id===id);if(t){t.done=!t.done;saveState();renderAll();}}
+
+// ── RENDER FUNCTIONS ─────────────────────────────────────────────
+
+function renderKPIs(){
+  const tot=tasks.length,done=tasks.filter(t=>t.done).length;
+  const urg=tasks.filter(t=>t.urg&&!t.done).length;
+  const pct=Math.round(done/tot*100);
+  // Total flujo confirmado
+  const cfConf=CF_WEEKS.flatMap(w=>w.items).reduce((a,i)=>a+(i.ef||0)+(i.trj||0),0);
+  document.getElementById('kpi-strip').innerHTML=`
+    <div class="kpi kt"><div class="kpi-lbl">Progreso general</div><div class="kpi-val">${pct}%</div><div class="kpi-sub">${done} de ${tot} tareas</div></div>
+    <div class="kpi kd"><div class="kpi-lbl">Urgentes pendientes</div><div class="kpi-val">${urg}</div><div class="kpi-sub">acción esta semana</div></div>
+    <div class="kpi ko"><div class="kpi-lbl">Flujo confirmado</div><div class="kpi-val" style="font-size:20px;margin-top:5px">${fp(cfConf)}</div><div class="kpi-sub">sin ítems pendientes de cotizar</div></div>
+    <div class="kpi ka"><div class="kpi-lbl">Apertura</div><div class="kpi-val">1ª jun</div><div class="kpi-sub">semana 4 · 4 semanas</div></div>`;
+  document.getElementById('sb-bar').style.width=pct+'%';
+  document.getElementById('sb-pct').textContent=pct+'%';
+}
+
+function renderUrgent(){
+  const urg=tasks.filter(t=>t.urg&&!t.done);
+  document.getElementById('urg-count').textContent=urg.length+' pendientes';
+  const el=document.getElementById('urgent-list');
+  const box=document.createElement('div');
+  box.className='urg-box';
+  box.innerHTML=urg.length?urg.map(t=>taskRow(t,true)).join(''):'<div style="padding:16px 17px;font-size:13px;color:var(--ink-60)">Sin urgentes pendientes.</div>';
+  el.innerHTML='';el.appendChild(box);
+}
+
+function renderHitosTL(){
+  document.getElementById('hitos-tl').innerHTML=HITOS.map(h=>`
+    <div class="tl-item">
+      <div class="tl-dot ${h.type}"></div>
+      ${h.type==='hito'?'<div class="tl-hito">Hito</div>':''}
+      <div class="tl-date">${h.date}</div>
+      <div class="tl-title">${h.title}</div>
+      <div class="tl-desc">${h.desc}</div>
+    </div>`).join('');
+}
+
+function renderTeam(id){
+  document.getElementById(id).innerHTML=TEAM.map(m=>{
+    const asgn=tasks.filter(t=>t.who.includes(m.ini));
+    const done=asgn.filter(t=>t.done).length;
+    return `<div class="tcard">
+      <div class="tav" style="${m.av}">${m.ini}</div>
+      <div class="tname">${m.name}</div>
+      <div class="trole">${m.role}</div>
+      <div class="tcount">${done}<span style="font-size:14px;font-family:var(--fm);color:var(--ink-60)">/${asgn.length}</span></div>
+      <div class="ttasks">tareas completadas</div>
+    </div>`;
+  }).join('');
+}
+
+function renderCashFlow(){
+  const CAT_COLOR={
+    'Merch.':'#3d5a3e','Obra':'#9e2020','Equip.':'#b84a20',
+    'Admin':'#3a4a5c','Infra':'#b84a20','Mobil.':'#5c3a8c',
+    'Seguridad':'#9e2020','Operac.':'#3a4a5c','Mktg.':'#5c3a8c',
+  };
+
+  let grandEf=0,grandTrj=0,grandPend=0;
+  CF_WEEKS.forEach(w=>{
+    w.items.forEach(i=>{grandEf+=i.ef||0;grandTrj+=i.trj||0;if(i.ef===null||i.trj===null)grandPend++;});
+  });
+  const grandConf=grandEf+grandTrj;
+
+  // Chart data
+  const labels=['S1 · 12–16 may','S2 · 19–23 may','S3 · 26–30 may','S4 · 2–6 jun'];
+  const efData=CF_WEEKS.map(w=>w.items.reduce((a,i)=>a+(i.ef||0),0));
+  const trjData=CF_WEEKS.map(w=>w.items.reduce((a,i)=>a+(i.trj||0),0));
+
+  let html=`
+  <div class="cf-alert ok">↓ <strong>Flujo:</strong> S1 pagos administrativos + equipamiento · S2 pago mercadería + inicio obra · S3 obra fina + reposición · Anteúlt/últ may mercadería entra · 1ª jun apertura</div>
+  <div class="cf-alert warn">⚠ <strong>Ítems sin cotizar:</strong> piso+pintura, muebles/estanterías, mano de obra obra (definir Jue 15/05), CAGNOLI, ORIENTES, grifería, AC. El flujo real será mayor.</div>
+
+  <div class="cf-grand">
+    <div>
+      <div class="cf-grand-left">Total flujo confirmado</div>
+      <div class="cf-grand-num">${fp(grandConf)}</div>
+      <div class="cf-grand-sub">+ ${grandPend} ítems pendientes de cotizar · ahorro Espinosa ${fp(Math.round(ESPINOSA_BRUTO*DESC))}</div>
+    </div>
+    <div style="text-align:right">
+      <div style="font-family:var(--fm);font-size:10px;color:var(--ink-60);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">Efectivo</div>
+      <div style="font-family:var(--fm);font-size:15px;font-weight:500;color:var(--danger)">${fp(grandEf)}</div>
+      <div style="font-family:var(--fm);font-size:10px;color:var(--ink-60);text-transform:uppercase;letter-spacing:.08em;margin:8px 0 4px">Tarjeta / Transf.</div>
+      <div style="font-family:var(--fm);font-size:15px;font-weight:500;color:var(--olive)">${fp(grandTrj)}</div>
+    </div>
+  </div>
+
+  <div class="cf-chart-wrap">
+    <div style="font-family:var(--fm);font-size:10px;color:var(--ink-60);text-transform:uppercase;letter-spacing:.1em;margin-bottom:14px">Distribución semanal del flujo</div>
+    <div style="display:flex;gap:12px;margin-bottom:10px;font-size:11px;font-family:var(--fm)">
+      <span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:2px;background:#9e2020;display:inline-block"></span>Efectivo</span>
+      <span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:2px;background:#3d5a3e;display:inline-block"></span>Tarjeta / Transf.</span>
+    </div>
+    <div style="position:relative;height:180px"><canvas id="cf-chart" role="img" aria-label="Flujo de caja por semana"></canvas></div>
+  </div>`;
+
+  CF_WEEKS.forEach(w=>{
+    const wEf=w.items.reduce((a,i)=>a+(i.ef||0),0);
+    const wTrj=w.items.reduce((a,i)=>a+(i.trj||0),0);
+    const wPend=w.items.filter(i=>i.ef===null||i.trj===null).length;
+    const wTotal=wEf+wTrj;
+
+    const totalColor=w.n===1?'var(--terra)':w.n===2?'var(--danger)':w.n===3?'var(--olive)':'var(--slate)';
+
+    html+=`<div class="cf-week">
+      <div class="cf-week-hdr">
+        <div>
+          <div class="cf-week-title">${w.label}</div>
+          <div style="font-family:var(--fm);font-size:10px;color:var(--ink-60)">${w.dates}</div>
+        </div>
+        <div style="text-align:center">
+          ${wPend?`<div style="font-family:var(--fm);font-size:9px;color:var(--amber);text-transform:uppercase;letter-spacing:.07em">${wPend} sin cotizar</div>`:''}
+        </div>
+        <div class="cf-week-total" style="color:${totalColor}">${wTotal>0?fp(wTotal):'—'}</div>
+      </div>
+      <div class="cf-rows">`;
+
+    w.items.forEach(i=>{
+      const color=CAT_COLOR[i.cat]||'#3a4a5c';
+      const monto=(i.ef||0)+(i.trj||0);
+      const sinPrecio=(i.ef===null||i.trj===null);
+      const tipoChip=i.ef>0&&!i.trj?'<span class="chip ch-urg">Efectivo</span>':i.trj>0&&!i.ef?'<span class="chip ch-compra">TRJ/Trans</span>':sinPrecio?'<span class="chip ch-who" style="background:var(--amber-l);color:var(--amber);border-color:var(--amber-m)">Cotizar</span>':'';
+      html+=`<div class="cf-row">
+        <div class="cf-dot" style="background:${color}"></div>
+        <div><div style="font-size:13px;color:var(--ink)">${i.desc}</div><div class="cf-cat">${i.cat} · ${i.nota}</div></div>
+        <div class="cf-monto" style="color:${sinPrecio?'var(--amber)':monto>0?'var(--ink)':'var(--ink-60)'}">${sinPrecio?'A cotizar':monto>0?fp(monto):'—'}</div>
+        <div class="cf-tipo">${tipoChip}</div>
+      </div>`;
+    });
+
+    html+=`</div>
+      <div class="cf-week-footer">
+        <div class="cf-footer-col"><div class="cf-footer-lbl">Efectivo</div><div class="cf-footer-val" style="color:${wEf>0?'var(--danger)':'var(--ink-60)'}">${fp(wEf)}</div></div>
+        <div class="cf-footer-col"><div class="cf-footer-lbl">Tarjeta / Transf.</div><div class="cf-footer-val" style="color:${wTrj>0?'var(--olive)':'var(--ink-60)'}">${fp(wTrj)}</div></div>
+        <div class="cf-footer-col"><div class="cf-footer-lbl">Total confirmado</div><div class="cf-footer-val" style="color:${wTotal>0?totalColor:'var(--ink-60)'}">${wTotal>0?fp(wTotal):'—'}</div></div>
+      </div>
+    </div>`;
+  });
+
+  document.getElementById('cf-content').innerHTML=html;
+
+  // Chart
+  requestAnimationFrame(()=>{
+    const ctx=document.getElementById('cf-chart');
+    if(!ctx)return;
+    if(ctx._chart)ctx._chart.destroy();
+    ctx._chart=new Chart(ctx,{
+      type:'bar',
+      data:{
+        labels,
+        datasets:[
+          {label:'Efectivo',data:efData,backgroundColor:'rgba(158,32,32,.75)',borderRadius:3},
+          {label:'Tarjeta/Transf.',data:trjData,backgroundColor:'rgba(61,90,62,.75)',borderRadius:3},
+        ]
+      },
+      options:{
+        responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${fp(c.raw)}`}}},
+        scales:{
+          x:{grid:{display:false},ticks:{font:{family:'DM Mono',size:10},color:'#7a7060',autoSkip:false}},
+          y:{grid:{color:'rgba(26,20,16,.07)'},ticks:{font:{family:'DM Mono',size:10},color:'#7a7060',callback:v=>v>=1000000?'$'+(v/1000000).toFixed(1)+'M':v>0?'$'+(v/1000).toFixed(0)+'K':'$0'}},
+        }
+      }
+    });
+  });
+}
+
+// ── BACKLOG STATE ────────────────────────────────────────────────
+let catFilter='all', userFilter='all', dragId=null;
+
+function renderBacklog(){
+  // ── filter bar ──
+  const fCats=['all','admin','infra','compra','comerc'];
+  const fLabels={all:'Todas',admin:'Admin',infra:'Infra',compra:'Compras',comerc:'Comercial'};
+  const fUsers=['all','MG','LA','JI','CR'];
+  const fULabels={all:'Todos',MG:'Mauricio',LA:'Lara',JI:'Jimena',CR:'Cristian'};
+  const uColors={MG:'var(--terra)',LA:'#5c3a8c',JI:'var(--olive)',CR:'var(--slate)'};
+
+  let barHtml=`<div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;width:100%">`;
+  barHtml+=`<span style="font-family:var(--fm);font-size:9px;color:var(--ink-60);text-transform:uppercase;letter-spacing:.1em;margin-right:2px">Cat</span>`;
+  barHtml+=fCats.map(c=>`<button class="fbtn${catFilter===c?' on':''}" onclick="setCat('${c}')">${fLabels[c]}</button>`).join('');
+  barHtml+=`<span style="font-family:var(--fm);font-size:9px;color:var(--ink-60);text-transform:uppercase;letter-spacing:.1em;margin:0 2px 0 10px">Usuario</span>`;
+  barHtml+=fUsers.map(u=>{
+    const on=userFilter===u;
+    const col=u!=='all'?uColors[u]:'';
+    return `<button class="fbtn${on?' on':''}" style="${on&&u!=='all'?`background:${col};border-color:${col}`:''}" onclick="setUser('${u}')">${fULabels[u]}</button>`;
+  }).join('');
+  barHtml+=`<button onclick="exportCSV()" style="margin-left:auto;font-family:var(--fm);font-size:10px;padding:5px 12px;border-radius:4px;border:1px solid var(--border-med);background:var(--white);color:var(--ink-60);cursor:pointer;letter-spacing:.06em;text-transform:uppercase;display:flex;align-items:center;gap:5px;transition:all .13s" onmouseover="this.style.background='var(--parchment)'" onmouseout="this.style.background='var(--white)'">↓ CSV</button>`;
+  barHtml+=`</div>`;
+  document.getElementById('fbar').innerHTML=barHtml;
+
+  // ── filter tasks ──
+  const filtered=tasks.filter(t=>{
+    const catOk=catFilter==='all'||t.cat===catFilter;
+    const userOk=userFilter==='all'||t.who.includes(userFilter);
+    return catOk&&userOk;
+  });
+  document.getElementById('bl-count').textContent=filtered.length+' tareas'+(userFilter!=='all'?' · '+userFilter:'');
+
+  // ── render week columns (always 4 columns, show all even if 0 tasks) ──
+  const container=document.getElementById('bl-weeks');
+  container.innerHTML='';
+  // Switch to 4-col grid when user filter active to make drag more visible
+  container.style.gridTemplateColumns='repeat(4,1fr)';
+
+  WEEKS.forEach(w=>{
+    const wt=filtered.filter(t=>t.week===w.n);
+    const allWt=tasks.filter(t=>t.week===w.n); // for progress
+    const done=allWt.filter(t=>t.done).length;
+    const pct=allWt.length?Math.round(done/allWt.length*100):0;
+
+    const card=document.createElement('div');
+    card.className='wcard';
+    card.dataset.week=w.n;
+
+    // drag-over highlight styles
+    card.addEventListener('dragover',e=>{
+      e.preventDefault();
+      card.style.outline='2px dashed var(--terra)';
+      card.style.outlineOffset='2px';
+    });
+    card.addEventListener('dragleave',()=>{ card.style.outline=''; card.style.outlineOffset=''; });
+    card.addEventListener('drop',e=>{
+      e.preventDefault();
+      card.style.outline=''; card.style.outlineOffset='';
+      if(dragId===null)return;
+      const t=tasks.find(x=>x.id===dragId);
+      if(t&&t.week!==w.n){ t.week=w.n; saveState(); renderAll(); }
+      dragId=null;
+    });
+
+    card.innerHTML=`
+      <div class="wc-hdr">
+        <div>
+          <div class="wc-w">${w.label} · ${w.dates}</div>
+          <div class="wc-t">${w.desc}</div>
+        </div>
+        <div class="wc-badge">${done}/${allWt.length}</div>
+      </div>
+      <div class="wp">
+        <div class="wp-track"><div class="wp-fill" style="width:${pct}%;background:${w.color}"></div></div>
+        <div class="wp-lbl">${pct}%</div>
+      </div>
+      <div class="wc-body" id="wbody-${w.n}">
+        ${wt.length
+          ? wt.map(t=>taskRowDrag(t)).join('')
+          : `<div style="padding:14px 16px;font-size:12px;color:var(--ink-60);font-family:var(--fm);text-align:center;opacity:.5;border:1.5px dashed var(--border-med);border-radius:6px;margin:8px">arrastrar aquí</div>`}
+      </div>`;
+    container.appendChild(card);
+  });
+}
+
+function taskRowDrag(t){
+  const m=CAT_META[t.cat];
+  const dc=t.urg?'urg':'';
+  return `<div class="trow${t.done?' done':''}" draggable="true"
+    ondragstart="dragId=${t.id};this.style.opacity='.4'"
+    ondragend="this.style.opacity='1'"
+    onclick="toggle(${t.id})"
+    style="cursor:grab">
+    <div class="tdot ${dc}">${t.done?'<svg width="8" height="8" viewBox="0 0 8 8"><polyline points="1,4 3.5,6.5 7,1.5" fill="none" stroke="#3d5a3e" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>':''}</div>
+    <div class="tb">
+      <div class="tname">${t.name}</div>
+      <div class="tchips">
+        ${chip(m.cls,m.label)}
+        ${t.urg?chip('ch-urg','Urgente'):''}
+        ${t.day?chip('ch-date',t.day):''}
+        ${t.monto?chip('ch-pesos',fp(t.monto)):''}
+        ${t.who.map(w=>`<span class="chip ch-who" style="border-color:${w==='MG'?'var(--terra-m)':w==='LA'?'#ccc0e8':w==='JI'?'var(--olive-m)':'var(--slate-l)'};">${w}</span>`).join('')}
+      </div>
+    </div>
+    <div class="tright" style="cursor:grab;opacity:.4;font-size:14px">⠿</div>
+  </div>`;
+}
+
+function setCat(c){catFilter=c;renderBacklog();}
+function setUser(u){userFilter=u;renderBacklog();}
+function setFilter(c){setCat(c);}// back-compat
+
+function exportCSV(){
+  const filtered=tasks.filter(t=>{
+    const catOk=catFilter==='all'||t.cat===catFilter;
+    const userOk=userFilter==='all'||t.who.includes(userFilter);
+    return catOk&&userOk;
+  });
+  const CAT_LABEL={admin:'Administrativo',infra:'Infraestructura',compra:'Compras',comerc:'Comercial'};
+  const W_LABEL={1:'Semana 1 (12–16 may)',2:'Semana 2 (19–23 may)',3:'Semana 3 (26–30 may)',4:'Semana 4 (2–6 jun)'};
+  const rows=[['ID','Tarea','Categoría','Semana','Fecha','Responsables','Monto','Forma pago','Estado']];
+  filtered.forEach(t=>{
+    rows.push([
+      t.id,
+      `"${t.name}"`,
+      CAT_LABEL[t.cat]||t.cat,
+      W_LABEL[t.week]||'S'+t.week,
+      t.day||'',
+      t.who.join(' / '),
+      t.monto?t.monto:'',
+      t.pago||'',
+      t.done?'Completada':'Pendiente'
+    ]);
+  });
+  const csv=rows.map(r=>r.join(',')).join('\n');
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  const uLabel=userFilter!=='all'?`_${userFilter}`:'_todos';
+  const cLabel=catFilter!=='all'?`_${catFilter}`:'';
+  a.href=url; a.download=`ginoteca_tareas${uLabel}${cLabel}.csv`; a.click();
+  URL.revokeObjectURL(url);
+}
+
+function renderCalendar(){
+  const S1=[
+    {label:'Admin', cl:'c-adm',items:{'Lun 12':'ReBA·Hab·REVA','Mar 13':'','Mié 14':'Seguro+PyME','Jue 15':'','Vie 16':'Contrato $1.9M'}},
+    {label:'Infra', cl:'c-inf',items:{'Lun 12':'','Mar 13':'Batea+cotizar obra','Mié 14':'','Jue 15':'Diseño·Piso·Elec·Mesada','Vie 16':''}},
+    {label:'Compras',cl:'c-cmp',items:{'Lun 12':'Heladeras Naldo+Seguridad','Mar 13':'Batea $2.5M','Mié 14':'Muebles/Estant','Jue 15':'Electrodom Naldo','Vie 16':'Piso+Pintura'}},
+    {label:'Hito',  cl:'c-hit',items:{'Lun 12':'','Mar 13':'','Mié 14':'','Jue 15':'Cómputo cerrado','Vie 16':'Contrato+Mat.'}},
+  ];
+  const S2=[
+    {label:'Obra',  cl:'c-obr',items:{'Lun 19':'INICIO OBRA','Mar 20':'Piso','Mié 21':'Pintura','Jue 22':'Eléctrica','Vie 23':'Termot.·Batea·Mesada'}},
+    {label:'Merch.', cl:'c-cmp',items:{'Lun 19':'','Mar 20':'Espinosa·Loydis·LCB','Mié 21':'Dankon·SanGiorgio·Paladini','Jue 22':'Tenki·Bensor','Vie 23':''}},
+  ];
+  const d1=['','Lun 12','Mar 13','Mié 14','Jue 15','Vie 16'];
+  const d2=['','Lun 19','Mar 20','Mié 21','Jue 22','Vie 23'];
+  const pagosDia={
+    'Lun 12':{ef:159980,   trj:2339982+999999+1137798, lef:'Zorras×2', ltrj:'Heladeras+Envasadora+Cortadora'},
+    'Mar 13':{ef:1400000,  trj:1300000,                lef:'Batea EF', ltrj:'Batea saldo Visa'},
+    'Mié 14':{ef:0,        trj:0,                      note:'Muebles a cotizar'},
+    'Jue 15':{ef:0,        trj:350000,                 ltrj:'Mesada ref.'},
+    'Vie 16':{ef:1900000,  trj:0,                      lef:'Contrato', ntrj:'Piso+Pintura a cotizar'},
+  };
+
+  function fmtM(n){return n>0?fp(n):'';}
+
+  let h=d1.map(d=>`<div class="cal-head">${d}</div>`).join('');
+  S1.forEach(r=>{
+    h+=`<div class="cal-rl">${r.label}</div>`;
+    d1.slice(1).forEach(d=>{const t=r.items[d]||'';h+=`<div class="cc ${t?r.cl:'e'}">${t}</div>`;});
+  });
+  h+=`<div class="cal-sum-sep"></div>`;
+  h+=`<div class="cal-sum-lbl" style="color:var(--danger);font-size:9px">Efectivo</div>`;
+  d1.slice(1).forEach(d=>{
+    const p=pagosDia[d],v=p?.ef||0,lbl=p?.lef?`<span class="csc-t">${p.lef}</span>`:'';
+    h+=v>0?`<div class="csc ef">${lbl}${fp(v)}</div>`:`<div class="csc e"></div>`;
+  });
+  h+=`<div class="cal-sum-lbl" style="color:var(--olive);font-size:9px">Tarjeta</div>`;
+  let s1Trj=0;
+  d1.slice(1).forEach(d=>{
+    const p=pagosDia[d],v=p?.trj||0,lbl=p?.ltrj?`<span class="csc-t">${p.ltrj}</span>`:'',note=p?.ntrj||'';
+    s1Trj+=v;
+    if(v>0)h+=`<div class="csc tr">${lbl}${fp(v)}</div>`;
+    else if(note)h+=`<div class="csc" style="background:var(--parch2);color:var(--ink-60);border:1px dashed var(--border-med);font-size:9px;text-align:center">${note}</div>`;
+    else h+=`<div class="csc e"></div>`;
+  });
+  h+=`<div class="cal-sum-lbl" style="color:var(--amber);font-size:9px;font-weight:500">Total día</div>`;
+  let s1Ef=Object.values(pagosDia).reduce((a,p)=>a+(p.ef||0),0);
+  d1.slice(1).forEach(d=>{const p=pagosDia[d],tot=(p?.ef||0)+(p?.trj||0);h+=tot>0?`<div class="csc tot">${fp(tot)}</div>`:`<div class="csc e"></div>`;});
+  h+=`<div class="cal-tot-bar">
+    <div class="ctb-i"><span class="ctb-l">Efectivo S1</span><span class="ctb-v" style="color:var(--danger)">${fp(s1Ef)}</span></div>
+    <div class="ctb-i"><span class="ctb-l">Tarjeta S1</span><span class="ctb-v" style="color:var(--olive)">${fp(s1Trj)}</span></div>
+    <div class="ctb-i"><span class="ctb-l">Total S1</span><span class="ctb-v" style="color:var(--terra)">${fp(s1Ef+s1Trj)}</span></div>
+  </div>`;
+
+  h+=`<div class="cal-sep">Semana 2 — 19/05 · Inicio obra gruesa (hito fijo) + pago mercadería principal</div>`;
+  h+=d2.map(d=>`<div class="cal-head">${d}</div>`).join('');
+  S2.forEach(r=>{
+    h+=`<div class="cal-rl">${r.label}</div>`;
+    d2.slice(1).forEach(d=>{const t=r.items[d]||'';h+=`<div class="cc ${t?r.cl:'e'}">${t}</div>`;});
+  });
+  const pagosS2={'Mar 20':{trj:ESPINOSA_NETO+489586+150012,ltrj:'Espinosa+Loydis+LCB'},'Mié 21':{trj:2809650+1417279,ef:707609,ltrj:'Dankon+SanGiorgio',lef:'Paladini'},'Jue 22':{trj:1030400+396212,ltrj:'Tenki+Bensor'}};
+  const s2days=['Lun 19','Mar 20','Mié 21','Jue 22','Vie 23'];
+  h+=`<div class="cal-sum-sep"></div>`;
+  h+=`<div class="cal-sum-lbl" style="color:var(--danger);font-size:9px">Efectivo</div>`;
+  s2days.forEach(d=>{const p=pagosS2[d],v=p?.ef||0,lbl=p?.lef?`<span class="csc-t">${p.lef}</span>`:'';h+=v>0?`<div class="csc ef">${lbl}${fp(v)}</div>`:`<div class="csc e"></div>`;});
+  h+=`<div class="cal-sum-lbl" style="color:var(--olive);font-size:9px">Tarjeta</div>`;
+  let s2Trj=0,s2Ef=0;
+  s2days.forEach(d=>{const p=pagosS2[d],v=p?.trj||0,lbl=p?.ltrj?`<span class="csc-t">${p.ltrj}</span>`:'';s2Trj+=v;s2Ef+=p?.ef||0;h+=v>0?`<div class="csc tr">${lbl}${fp(v)}</div>`:`<div class="csc e"></div>`;});
+  h+=`<div class="cal-sum-lbl" style="color:var(--amber);font-size:9px;font-weight:500">Total día</div>`;
+  s2days.forEach(d=>{const p=pagosS2[d],tot=(p?.ef||0)+(p?.trj||0);h+=tot>0?`<div class="csc tot">${fp(tot)}</div>`:`<div class="csc e"></div>`;});
+  h+=`<div class="cal-tot-bar">
+    <div class="ctb-i"><span class="ctb-l">Efectivo S2</span><span class="ctb-v" style="color:var(--danger)">${fp(s2Ef)}</span></div>
+    <div class="ctb-i"><span class="ctb-l">Tarjeta S2</span><span class="ctb-v" style="color:var(--olive)">${fp(s2Trj)}</span></div>
+    <div class="ctb-i"><span class="ctb-l">Total S2</span><span class="ctb-v" style="color:var(--terra)">${fp(s2Ef+s2Trj)}</span></div>
+    <div class="ctb-i"><span class="ctb-l">+ Cagnoli</span><span class="ctb-v" style="color:var(--amber);font-size:11px">a cotizar</span></div>
+  </div>`;
+
+  document.getElementById('cal-grid').innerHTML=h;
+}
+
+function renderPagos(){
+  const pays=tasks.filter(t=>t.pago&&t.monto);
+  let h=`<div class="p-hdr"><span>Concepto</span><span style="text-align:right">Monto</span><span>Fecha</span><span>Forma</span></div>`;
+  let tot=0;
+  pays.forEach(p=>{
+    tot+=p.monto;
+    const bc=p.pago==='Efectivo'?'ch-urg':p.pago.includes('cuotas')||p.pago.includes('TRJ')||p.pago.includes('Trans')?'ch-compra':'ch-who';
+    h+=`<div class="p-row">
+      <span style="font-size:13px;color:var(--ink)">${p.name}</span>
+      <span style="font-family:var(--fm);font-size:13px;font-weight:500;text-align:right">${fp(p.monto)}</span>
+      <span style="font-family:var(--fm);font-size:11px;color:var(--ink-60);text-align:center">${p.day}</span>
+      <span style="text-align:center"><span class="chip ${bc}">${p.pago}</span></span>
+    </div>`;
+  });
+  document.getElementById('ptable').innerHTML=h;
+  document.getElementById('p-total-val').textContent=fp(tot);
+  document.getElementById('pnote').innerHTML=
+    `⚠ Sin monto confirmado: piso+pintura · muebles/estanterías · electrodomésticos · termotanque · grifería · AC (S3) · rejas · mano de obra obra · seguro local (mensual).<br>
+     ↳ Definir en cómputo con Lara — límite Jue 15/05.<br>
+     💳 Cuotas TRJ sin interés: heladeras $129.999/mes×18 · envasadora $83.333/mes×12 · cortadora $94.817/mes×12 · batea saldo Visa próximo cierre.`;
+}
+
+function renderMercaderia(){
+  const PROVS=[
+    {name:'TIENDA ESPINOSA',cat:'Bebidas principales',s:2,dia:'Mar–Mié 20–21',tipo:'TRJ/Trans',bruto:ESPINOSA_BRUTO,neto:ESPINOSA_NETO,desc:true,skus:82,nota:'Gin importado, whisky, aperitivos, cervezas, gaseosas. Descuento 4,5% = '+fp(Math.round(ESPINOSA_BRUTO*DESC))+' de ahorro.',urg:true,entrega:'Anteúlt/últ mayo'},
+    {name:'DANKON',cat:'Almacén gourmet',s:2,dia:'Mié 21',tipo:'TRJ/Trans',bruto:2809650,neto:2809650,desc:false,skus:80,nota:'Conservas, aderezos, pastas, salsas, jugos artesanales, gourmet.',urg:true,entrega:'Anteúlt/últ mayo'},
+    {name:'SAN GIORGIO',cat:'Arroces + confituras',s:2,dia:'Mié 21',tipo:'TRJ/Trans',bruto:1417279,neto:1417279,desc:false,skus:28,nota:'Arroces gourmet (basmati, carnaroli, paella), confituras Chiaverini.',urg:false,entrega:'Anteúlt/últ mayo'},
+    {name:'LOYDIS — gin local MdP',cat:'Gin artesanal ★',s:2,dia:'Mar 20',tipo:'Efectivo',bruto:489586,neto:489586,desc:false,skus:11,nota:'Oso Negro, Casa Rosa, Mare, Malaria, aceites Oliovita. Ancla narrativa del concepto.',urg:true,entrega:'Retiro local MdP'},
+    {name:'PALADINI',cat:'Fiambres y quesos',s:2,dia:'Mié 21',tipo:'Efectivo',bruto:707609,neto:707609,desc:false,skus:15,nota:'Jamón cocido, quesos variados (pategras, dambo, fontina, gouda), panceta, mortadela.',urg:true,entrega:'Anteúlt/últ mayo'},
+    {name:'TENKI',cat:'Tés artesanales Bariloche',s:2,dia:'Jue 22',tipo:'TRJ/Trans',bruto:1030400,neto:1030400,desc:false,skus:15,nota:'Línea completa 50g + blends de yerba. 15 referencias activas.',urg:false,entrega:'Anteúlt/últ mayo'},
+    {name:'BENSOR DISTRIBUIDORA',cat:'Infusiones premium',s:2,dia:'Jue 22',tipo:'TRJ/Trans',bruto:396212,neto:396212,desc:false,skus:5,nota:'Matcha, Chai Latte, Cúrcuma, Cacao 82%, Remolacha.',urg:false,entrega:'Anteúlt/últ mayo'},
+    {name:'LA CAJA BUSINESS',cat:'Cervezas artesanales',s:2,dia:'Mar 20',tipo:'TRJ/Trans',bruto:150012,neto:150012,desc:false,skus:5,nota:'Blest IPA, Mexican, Scotch, Bock, Pilsen.',urg:false,entrega:'Anteúlt/últ mayo'},
+    {name:'CAGNOLI',cat:'Fiambres artesanales ★ PENDIENTE',s:2,dia:'Cotizar Jue 15',tipo:'Efectivo',bruto:0,neto:0,desc:false,skus:10,nota:'Salamines, bondiola, jamón crudo 12 meses. GAP CRÍTICO — cotizar antes del jueves.',urg:true,entrega:'A confirmar'},
+    {name:'VILLASUR',cat:'Snacks + jugos + lácteos veg.',s:3,dia:'S3',tipo:'TRJ/Trans',bruto:379394,neto:379394,desc:false,skus:20,nota:'Gauchitas, Zyma, jugos Estancia, leches vegetales Pampa Vida.',urg:false,entrega:'Última sem mayo'},
+    {name:'GRAN DUOMO',cat:'Vinos',s:3,dia:'S3',tipo:'Trans',bruto:750000,neto:750000,desc:false,skus:1,nota:'10 cajas variadas. Coordinar entrega cuando local esté operativo.',urg:false,entrega:'1ª sem junio'},
+    {name:'SHIO GOURMET',cat:'Sales gourmet',s:3,dia:'S3',tipo:'TRJ',bruto:100000,neto:100000,desc:false,skus:1,nota:'Pack inicial x45 + variedades pendientes.',urg:false,entrega:'Última sem mayo'},
+    {name:'DELECHESABOR',cat:'Dulce de leche',s:3,dia:'S3',tipo:'TRJ',bruto:132000,neto:132000,desc:false,skus:1,nota:'24 unidades surtidas.',urg:false,entrega:'Última sem mayo'},
+    {name:'ORIENTES (MdP)',cat:'Tés locales — contactar',s:3,dia:'Contactar esta semana',tipo:'A definir',bruto:0,neto:0,desc:false,skus:7,nota:'Tés agroecológicos argentinos. Proveedor local MdP.',urg:false,entrega:'A confirmar'},
+  ];
+
+  const s2=PROVS.filter(p=>p.s===2),s3=PROVS.filter(p=>p.s===3);
+  const tS2=s2.reduce((a,p)=>a+p.neto,0),tS3=s3.reduce((a,p)=>a+p.neto,0);
+  const descAhorro=Math.round(ESPINOSA_BRUTO*DESC);
+
+  function provRow(p){
+    const sp=p.neto===0;
+    return `<div class="merch-prow${p.urg?' urg':''}">
+      <div class="merch-ph">
+        <div>
+          <div class="merch-cat">${p.cat}${p.urg?' · <span style="color:var(--danger)">Urgente</span>':''}</div>
+          <div class="merch-name">${p.name}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          ${sp?`<div style="font-family:var(--fm);font-size:12px;color:var(--amber);font-weight:500">Sin precio</div>`:`<div style="font-family:var(--fm);font-size:14px;font-weight:500;color:var(--ink)">${fp(p.neto)}</div>${p.desc?`<div style="font-family:var(--fm);font-size:9px;color:var(--olive)">−4.5% · antes: ${fp(p.bruto)}</div>`:''}`}
+          <div style="font-family:var(--fm);font-size:9px;color:var(--ink-60);margin-top:2px">${p.skus} SKUs · ${p.dia}</div>
+        </div>
+      </div>
+      <div class="merch-pb">
+        <span style="font-size:12px;color:var(--ink-60);flex:1">${p.nota}</span>
+        <span class="chip ${p.tipo==='Efectivo'?'ch-urg':'ch-compra'}">${p.tipo}</span>
+        <span class="chip ch-date">Llega: ${p.entrega}</span>
+      </div>
+    </div>`;
+  }
+
+  let html=`
+  <div class="kpi-strip" style="margin-bottom:14px">
+    <div class="kpi kt" style="animation:none"><div class="kpi-lbl">Proveedores</div><div class="kpi-val">14</div><div class="kpi-sub">activos + pendientes</div></div>
+    <div class="kpi kd" style="animation:none"><div class="kpi-lbl">Total S2 (ref.)</div><div class="kpi-val" style="font-size:19px;margin-top:5px">${fp(tS2)}</div><div class="kpi-sub">+ CAGNOLI a cotizar</div></div>
+    <div class="kpi ko" style="animation:none"><div class="kpi-lbl">Ahorro Espinosa</div><div class="kpi-val" style="font-size:22px;margin-top:4px">${fp(descAhorro)}</div><div class="kpi-sub">4,5% sobre total pedido</div></div>
+    <div class="kpi ka" style="animation:none"><div class="kpi-lbl">Entrega estimada</div><div class="kpi-val" style="font-size:13px;margin-top:8px;line-height:1.2">Anteúlt/últ<br>sem mayo</div><div class="kpi-sub">obra lista → merch entra</div></div>
+  </div>
+  <div class="cf-alert ok">↓ <strong>Flujo:</strong> Pagás S2 · Obra cierra S3 · Mercadería entra anteúltima/última sem mayo · Apertura 1ª junio</div>
+  <div class="cf-alert warn">⚠ Montos de referencia — basados en precios del stock anterior. Actualizar con lista vigente antes de emitir la orden S2. Confirmar contacto con Espinosa, Dankon y Cagnoli antes del Jue 15/05.</div>
+  <div class="sec-hdr" style="margin-bottom:11px"><div class="sec-title">Semana 2 — pagar proveedores (19–23 may)</div><div class="sec-meta">mercadería llega anteúlt/últ semana mayo</div></div>
+  ${s2.map(provRow).join('')}
+  <div style="display:flex;justify-content:flex-end;align-items:baseline;gap:13px;padding:12px 18px;background:var(--terra-l);border-radius:10px;border:1px solid var(--terra-m);margin:4px 0 22px">
+    <span style="font-family:var(--fm);font-size:10px;color:var(--terra);text-transform:uppercase;letter-spacing:.08em">Total S2 (ref.)</span>
+    <span style="font-family:var(--fd);font-size:26px;color:var(--terra)">${fp(tS2)}</span>
+    <span style="font-family:var(--fm);font-size:10px;color:rgba(184,74,32,.6)">+ CAGNOLI a cotizar</span>
+  </div>
+  <div class="sec-hdr" style="margin-bottom:11px"><div class="sec-title">Semana 3 — reposición complementaria (26–30 may)</div><div class="sec-meta">última semana o 1ª junio</div></div>
+  ${s3.map(provRow).join('')}
+  <div style="display:flex;justify-content:flex-end;align-items:baseline;gap:13px;padding:12px 18px;background:var(--olive-l);border-radius:10px;border:1px solid var(--olive-m);margin:4px 0 22px">
+    <span style="font-family:var(--fm);font-size:10px;color:var(--olive);text-transform:uppercase;letter-spacing:.08em">Total S3 (ref.)</span>
+    <span style="font-family:var(--fd);font-size:26px;color:var(--olive)">${fp(tS3)}</span>
+    <span style="font-family:var(--fm);font-size:10px;color:rgba(61,90,62,.6)">+ ORIENTES a cotizar</span>
+  </div>`;
+
+  document.getElementById('merch-content').innerHTML=html;
+}
+
+function renderFullTL(){
+  const tl=[
+    {date:'Lun 12/05',  title:'Semana 1 arranca',              type:'',      desc:'Seguro + cuenta PyME en paralelo (Cristian). Admin completo esta semana.'},
+    {date:'Mar 13/05',  title:'Batea: medidas + pago',          type:'hito',  desc:'Verificar que pasa por puerta. Si OK → pago $2.500.000 efectivo.'},
+    {date:'Lun 12/05',  title:'Compras ML — heladeras + equipamiento ✓',type:'active',desc:'Heladeras $2.339.982 (18 cuotas SI) · Envasadora $999.999 (12 cuotas) · Cortadora $1.137.798 (12 cuotas) · Zorras $159.980 EF.'},
+    {date:'Jue 15/05',  title:'Cómputo cerrado + diseño aprobado',type:'hito',desc:'Lara entrega presupuesto completo. Diseño, piso y eléctrica definidos. Muebles pagados.'},
+    {date:'Vie 16/05',  title:'Contrato firmado + materiales comprados',type:'hito',desc:'Pago $1.900.000 efectivo. Piso + pintura tarjeta cuotas.'},
+    {date:'Lun 19/05',  title:'INICIO OBRA GRUESA',             type:'hito',  desc:'Hito fijo. Independiente del contrato. Sin excepción.'},
+    {date:'19–23/05',   title:'Pago proveedores mercadería',     type:'hito',  desc:'Espinosa (−4,5%), Dankon, San Giorgio, Paladini, Loydis, Tenki, Bensor. ~$11.6M + Cagnoli.'},
+    {date:'26–30/05',   title:'Semana 3 — obra fina',           type:'',      desc:'Colocaciones, estanterías, rejas, AC (si se decide). Local listo.'},
+    {date:'Anteúlt/últ may',title:'Mercadería entra al local',  type:'hito',  desc:'Recepción y acomodado de stock. Obra terminada.'},
+    {date:'1ª sem jun', title:'Apertura operativa',              type:'hito',  desc:'Gins artesanales, almacén gourmet, sistemas activos, Instagram live.'},
+  ];
+  document.getElementById('full-tl').innerHTML=tl.map(h=>`
+    <div class="tl-item">
+      <div class="tl-dot ${h.type}"></div>
+      ${h.type==='hito'?'<div class="tl-hito">Hito</div>':''}
+      <div class="tl-date">${h.date}</div>
+      <div class="tl-title">${h.title}</div>
+      <div class="tl-desc">${h.desc}</div>
+    </div>`).join('');
+}
+
+// ── NAV ──────────────────────────────────────────────────────────
+const PAGES=['dashboard','cashflow','backlog','calendario','pagos','mercaderia','timeline','equipo'];
+function sp(name){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  const idx=PAGES.indexOf(name);
+  if(idx>=0) document.querySelectorAll('.nav-item')[idx].classList.add('active');
+}
+
+// ── DATE ─────────────────────────────────────────────────────────
+function updateDate(){
+  const d=new Date();
+  const D=['DOM','LUN','MAR','MIÉ','JUE','VIE','SÁB'];
+  const M=['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
+  document.getElementById('live-date').textContent=`${D[d.getDay()]} ${d.getDate()} ${M[d.getMonth()]} ${d.getFullYear()} · ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
+
+// ── RENDER ALL ───────────────────────────────────────────────────
+function renderAll(){
+  renderKPIs();
+  renderUrgent();
+  renderHitosTL();
+  renderTeam('team-dash');
+  renderTeam('team-full');
+  renderCashFlow();
+  renderBacklog();
+  renderCalendar();
+  renderPagos();
+  renderMercaderia();
+  renderFullTL();
+}
+
+function resetState(){
+  if(confirm('¿Borrar el progreso guardado y volver al estado inicial?')){
+    localStorage.removeItem(LS_KEY);
+    tasks=TASKS.map(t=>({...t}));
+    const lbl=document.getElementById('save-lbl');
+    if(lbl)lbl.textContent='';
+    renderAll();
+  }
+}
+
+renderAll();
+loadState();
+renderAll();
+updateDate();
+setInterval(updateDate,30000);
+</script>
+<!-- BOT FAB -->
+<button class="bot-fab" onclick="toggleBot()" title="Asistente de datos">
+  <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h3a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3H8a3 3 0 0 1-3-3v-8a3 3 0 0 1 3-3h3V5.73A2 2 0 0 1 10 4a2 2 0 0 1 2-2zm-4 9a1.5 1.5 0 0 0 0 3 1.5 1.5 0 0 0 0-3zm8 0a1.5 1.5 0 0 0 0 3 1.5 1.5 0 0 0 0-3zm-4 4c-1.5 0-2.5.67-3 1h6c-.5-.33-1.5-1-3-1z"/></svg>
+</button>
+
+<!-- BOT PANEL -->
+<div class="bot-panel hidden" id="bot-panel">
+  <div class="bot-header">
+    <div>
+      <div class="bot-title">ASISTENTE</div>
+      <div class="bot-subtitle">Command Center · actualizaciones de datos</div>
+    </div>
+    <button class="bot-close" onclick="toggleBot()">×</button>
+  </div>
+  <div class="bot-api-row">
+    <input class="bot-api-input" id="bot-api-key" type="password" placeholder="API Key (sk-ant-...)" />
+    <button class="bot-api-btn" id="bot-api-btn" onclick="saveApiKey()">Guardar</button>
+  </div>
+  <div class="bot-msgs" id="bot-msgs">
+    <div class="bot-msg system">Hola. Decime qué dato querés actualizar y lo aplico directo al Command Center.<br><br>Ejemplos:<br>· "Pagamos $180.000 a CAGNOLI por 8 SKUs"<br>· "La cortadora costó $1.100.000 en 12 cuotas"<br>· "Marcar inicio de obra como completado"<br>· "El piso costó $420.000"</div>
+  </div>
+  <div class="bot-input-row">
+    <textarea class="bot-textarea" id="bot-input" rows="1" placeholder="Escribí el cambio..." onkeydown="botKeydown(event)" oninput="autoResize(this)"></textarea>
+    <button class="bot-send" id="bot-send-btn" onclick="sendBot()">
+      <svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
+    </button>
+  </div>
+</div>
+
+<script>
+// ── BOT ──────────────────────────────────────────────────────────
+const BOT_KEY='ginoteca_apikey';
+let botOpen=false, botLoading=false;
+
+function toggleBot(){
+  botOpen=!botOpen;
+  document.getElementById('bot-panel').classList.toggle('hidden',!botOpen);
+  if(botOpen){
+    const saved=localStorage.getItem(BOT_KEY);
+    if(saved){
+      document.getElementById('bot-api-key').value=saved;
+      document.getElementById('bot-api-btn').textContent='✓ Guardada';
+      document.getElementById('bot-api-btn').classList.add('saved');
+    }
+    setTimeout(()=>document.getElementById('bot-input').focus(),100);
+  }
+}
+
+function saveApiKey(){
+  const k=document.getElementById('bot-api-key').value.trim();
+  if(!k){alert('Ingresá una API key válida.');return;}
+  localStorage.setItem(BOT_KEY,k);
+  const btn=document.getElementById('bot-api-btn');
+  btn.textContent='✓ Guardada'; btn.classList.add('saved');
+}
+
+function autoResize(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,90)+'px';}
+
+function botKeydown(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendBot();}}
+
+function addMsg(role,text){
+  const el=document.createElement('div');
+  el.className=`bot-msg ${role}`;
+  el.innerHTML=text.replace(/\n/g,'<br>');
+  document.getElementById('bot-msgs').appendChild(el);
+  document.getElementById('bot-msgs').scrollTop=99999;
+  return el;
+}
+
+function showTyping(){
+  const el=document.createElement('div');
+  el.className='bot-typing'; el.id='bot-typing';
+  el.innerHTML='<span></span><span></span><span></span>';
+  document.getElementById('bot-msgs').appendChild(el);
+  document.getElementById('bot-msgs').scrollTop=99999;
+}
+
+function hideTyping(){const el=document.getElementById('bot-typing');if(el)el.remove();}
+
+// Build current state snapshot for context
+function buildContext(){
+  const snap=tasks.map(t=>({
+    id:t.id, name:t.name, cat:t.cat, week:t.week,
+    done:t.done, monto:t.monto, pago:t.pago, day:t.day, who:t.who
+  }));
+
+  // Cashflow confirmed totals
+  const cfConf=CF_WEEKS.flatMap(w=>w.items).reduce((a,i)=>a+(i.ef||0)+(i.trj||0),0);
+
+  return `Sos el asistente de datos del Command Center de apertura de GINOTECA (almacén gourmet y ginoteca, Mar del Plata, Argentina).
+
+Tu función es EXCLUSIVAMENTE interpretar instrucciones del usuario en lenguaje natural y devolver un JSON con las modificaciones a aplicar al sistema. No charlás, no explicás, solo devolvés JSON.
+
+ESTADO ACTUAL DE TAREAS (${tasks.length} tareas):
+${JSON.stringify(snap,null,2)}
+
+REGLAS:
+1. Siempre respondé SOLO con un objeto JSON válido, sin markdown, sin texto extra.
+2. El JSON debe tener esta estructura:
+{
+  "accion": "update_tasks" | "add_task" | "message",
+  "cambios": [ { "id": NUMBER, "campo": "done"|"monto"|"pago"|"day"|"week"|"name", "valor": ANY } ],
+  "nueva_tarea": { "name": "", "cat": "admin"|"infra"|"compra"|"comerc", "week": 1-4, "day": "", "urg": false, "monto": null, "pago": null, "who": ["MG"] },
+  "mensaje": "texto corto de confirmación para mostrar al usuario"
+}
+3. Si la instrucción es solo una pregunta o no requiere cambio, usá accion:"message" con el campo "mensaje".
+4. Para marcar como pagado/completado, cambiar done a true.
+5. Los montos siempre en pesos argentinos (números, sin $, sin puntos de miles).
+6. Podés hacer múltiples cambios en un solo JSON (array "cambios").
+7. Si agregás una tarea nueva, usá accion:"add_task" y completá "nueva_tarea".
+8. En "mensaje" siempre confirmá qué se hizo en una línea concisa.`;
+}
+
+async function sendBot(){
+  if(botLoading)return;
+  const input=document.getElementById('bot-input');
+  const text=input.value.trim();
+  if(!text)return;
+  const apiKey=localStorage.getItem(BOT_KEY)||document.getElementById('bot-api-key').value.trim();
+  if(!apiKey||!apiKey.startsWith('sk-')){
+    addMsg('err','⚠ Ingresá tu API key primero (sk-ant-...)');
+    return;
+  }
+
+  addMsg('user',text);
+  input.value=''; input.style.height='auto';
+  botLoading=true;
+  document.getElementById('bot-send-btn').disabled=true;
+  showTyping();
+
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:1000,
+        system: buildContext(),
+        messages:[{role:'user',content:text}]
+      })
+    });
+
+    hideTyping();
+
+    if(!res.ok){
+      const err=await res.json().catch(()=>({}));
+      addMsg('err',`Error API: ${err.error?.message||res.status}`);
+      return;
+    }
+
+    const data=await res.json();
+    const raw=data.content?.find(b=>b.type==='text')?.text||'';
+
+    let parsed;
+    try{
+      const clean=raw.replace(/```json|```/g,'').trim();
+      parsed=JSON.parse(clean);
+    }catch(e){
+      addMsg('err','No pude interpretar la respuesta. Intentá de nuevo.');
+      console.error('Bot parse error:',raw);
+      return;
+    }
+
+    // Apply changes
+    if(parsed.accion==='update_tasks'&&parsed.cambios?.length){
+      parsed.cambios.forEach(c=>{
+        const t=tasks.find(x=>x.id===c.id);
+        if(t) t[c.campo]=c.valor;
+      });
+      saveState();
+      renderAll();
+    }
+
+    if(parsed.accion==='add_task'&&parsed.nueva_tarea){
+      const nt=parsed.nueva_tarea;
+      const newId=Math.max(...tasks.map(t=>typeof t.id==='number'?t.id:0))+1;
+      tasks.push({
+        id:newId, name:nt.name||'Nueva tarea',
+        cat:nt.cat||'compra', week:nt.week||1,
+        day:nt.day||'', urg:nt.urg||false,
+        monto:nt.monto||null, pago:nt.pago||null,
+        who:nt.who||['MG'], done:false
+      });
+      saveState();
+      renderAll();
+    }
+
+    addMsg('assistant', parsed.mensaje||'Listo.');
+
+  }catch(e){
+    hideTyping();
+    addMsg('err','Error de red. Verificá tu conexión.');
+    console.error(e);
+  }finally{
+    botLoading=false;
+    document.getElementById('bot-send-btn').disabled=false;
+  }
+}
+</script>
+</body>
+</html>
