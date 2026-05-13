@@ -254,7 +254,70 @@ body{background:var(--parchment);color:var(--ink);font-family:var(--fb);font-siz
 
 </head>
 <body>
-<div class="shell">
+<style>
+.login-overlay{position:fixed;inset:0;background:var(--parchment);z-index:9999;display:flex;align-items:center;justify-content:center;min-height:100vh;min-width:100vw;}
+.login-overlay.hidden{display:none;}
+.login-box{background:var(--white);border:1px solid var(--border-med);border-radius:14px;padding:40px 36px;width:340px;box-shadow:0 8px 32px rgba(26,20,16,.14);display:flex;flex-direction:column;align-items:center;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);}
+.login-logo{font-family:var(--fd);font-size:48px;letter-spacing:.06em;color:var(--terra);line-height:1;margin-bottom:4px;}
+.login-sub{font-family:var(--fm);font-size:10px;color:var(--ink-60);letter-spacing:.14em;text-transform:uppercase;margin-bottom:32px;}
+.login-field{width:100%;margin-bottom:12px;}
+.login-field label{font-family:var(--fm);font-size:9px;color:var(--ink-60);letter-spacing:.12em;text-transform:uppercase;display:block;margin-bottom:5px;}
+.login-field input{width:100%;padding:10px 12px;border-radius:7px;border:1px solid var(--border-med);background:var(--cream);font-family:var(--fb);font-size:14px;color:var(--ink);outline:none;transition:border-color .13s;}
+.login-field input:focus{border-color:var(--terra);}
+.login-btn{width:100%;margin-top:8px;padding:12px;border-radius:8px;background:var(--terra);border:none;font-family:var(--fd);font-size:18px;letter-spacing:.1em;color:#fff;cursor:pointer;transition:background .13s;}
+.login-btn:hover{background:#9e3a18;}
+.login-err{font-family:var(--fm);font-size:11px;color:var(--danger);text-align:center;margin-top:8px;min-height:16px;letter-spacing:.04em;}
+.login-shake{animation:shake .35s ease;}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
+</style>
+
+<!-- LOGIN -->
+<div class="login-overlay" id="login-overlay">
+  <div class="login-box" id="login-box">
+    <div class="login-logo">GINOTECA</div>
+    <div class="login-sub">Command Center · Acceso privado</div>
+    <div class="login-field">
+      <label>Usuario</label>
+      <input type="text" id="login-user" placeholder="usuario" autocomplete="username" onkeydown="if(event.key==='Enter')doLogin()"/>
+    </div>
+    <div class="login-field">
+      <label>Contraseña</label>
+      <input type="password" id="login-pass" placeholder="••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"/>
+    </div>
+    <button class="login-btn" onclick="doLogin()">INGRESAR</button>
+    <div class="login-err" id="login-err"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const AUTH_KEY='ginoteca_auth';
+  if(sessionStorage.getItem(AUTH_KEY)==='ok'){
+    document.getElementById('login-overlay').classList.add('hidden');
+    document.getElementById('main-shell').style.visibility='visible';
+    document.getElementById('bot-fab') && (document.getElementById('bot-fab').style.display='flex');
+  }
+  window.doLogin=function(){
+    const u=document.getElementById('login-user').value.trim().toLowerCase();
+    const p=document.getElementById('login-pass').value.trim();
+    if(u==='admin'&&p==='2831'){
+      sessionStorage.setItem(AUTH_KEY,'ok');
+      document.getElementById('login-overlay').classList.add('hidden');
+      document.getElementById('main-shell').style.visibility='visible';
+    } else {
+      const box=document.getElementById('login-box');
+      const err=document.getElementById('login-err');
+      err.textContent='Usuario o contraseña incorrectos.';
+      box.classList.remove('login-shake');
+      void box.offsetWidth;
+      box.classList.add('login-shake');
+      document.getElementById('login-pass').value='';
+      document.getElementById('login-pass').focus();
+    }
+  };
+})();
+</script>
+<div class="shell" id="main-shell" style="visibility:hidden">
 
 <header class="topbar">
   <div class="tb-brand">
